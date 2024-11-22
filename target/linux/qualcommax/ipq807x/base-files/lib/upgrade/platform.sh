@@ -127,6 +127,12 @@ platform_pre_upgrade() {
 
 platform_do_upgrade() {
 	case "$(board_name)" in
+	aliyun,ap8220|\
+	linksys,homewrk|\
+	zte,mf269-stock)
+		CI_UBIPART="rootfs"
+		nand_do_upgrade "$1"
+		;;
 	arcadyan,aw1000|\
 	cmcc,rm2-6|\
 	compex,wpq873|\
@@ -168,16 +174,23 @@ platform_do_upgrade() {
 		;;
 	linksys,mx4200v1|\
 	linksys,mx4200v2|\
+	linksys,mx4300|\
 	linksys,mx5300|\
 	linksys,mx8500)
 		boot_part="$(fw_printenv -n boot_part)"
-		if [ "$boot_part" -eq "1" ]; then
-			fw_setenv boot_part 2
-			CI_KERNPART="alt_kernel"
-			CI_UBIPART="alt_rootfs"
+		if [ -n "$UPGRADE_OPT_CURR_PARTITION" ]; then
+			if [ "$boot_part" -eq "2" ]; then
+				CI_KERNPART="alt_kernel"
+				CI_UBIPART="alt_rootfs"
+			fi
 		else
-			fw_setenv boot_part 1
-			CI_UBIPART="rootfs"
+			if [ "$boot_part" -eq "1" ]; then
+				fw_setenv boot_part 2
+				CI_KERNPART="alt_kernel"
+				CI_UBIPART="alt_rootfs"
+			else
+				fw_setenv boot_part 1
+			fi
 		fi
 		fw_setenv boot_part_ready 3
 		fw_setenv auto_recovery yes
@@ -271,10 +284,6 @@ platform_do_upgrade() {
 	zte,mf269)
 		CI_KERN_UBIPART="ubi_kernel"
 		CI_ROOT_UBIPART="rootfs"
-		nand_do_upgrade "$1"
-		;;
-	zte,mf269-stock)
-		CI_UBIPART="rootfs"
 		nand_do_upgrade "$1"
 		;;
 	zyxel,nbg7815)
