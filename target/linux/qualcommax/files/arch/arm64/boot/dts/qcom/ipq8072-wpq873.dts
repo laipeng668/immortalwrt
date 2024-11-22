@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/* Copyright 2023 Nokia */
-
 /dts-v1/;
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
 #include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
@@ -35,6 +34,8 @@
 
 	keys {
 		compatible = "gpio-keys";
+		pinctrl-0 = <&button_pins>;
+		pinctrl-names = "default";
 
 		reset {
 			label = "reset";
@@ -91,10 +92,12 @@
 	};
 
 	i2c_pins: i2c-pins {
-		pins = "gpio0", "gpio2";
-		function = "blsp5_i2c";
-		drive-strength = <8>;
-		bias-disable;
+		mux {
+			pins = "gpio0", "gpio2";
+			function = "blsp5_i2c";
+			drive-strength = <8>;
+			bias-disable;
+		};
 	};
 };
 
@@ -146,8 +149,8 @@
 		};
 	};
 
-	button_pins: button_pins {
-		reset_button {
+	button_pins: button-pins {
+		mux {
 			pins = "gpio66";
 			function = "gpio";
 			drive-strength = <8>;
@@ -388,11 +391,11 @@
 &switch {
 	status = "okay";
 
-	switch_lan_bmp = <(ESS_PORT2 | ESS_PORT3 | ESS_PORT4)>; /* lan port bitmap */
-	switch_wan_bmp = <ESS_PORT6>; /* wan port bitmap */
-	switch_mac_mode = <MAC_MODE_PSGMII>; /* mac mode for uniphy instance0*/
-	switch_mac_mode1 = <MAC_MODE_SGMII_CHANNEL0>; /* mac mode for uniphy instance1*/
-	switch_mac_mode2 = <MAC_MODE_SGMII_CHANNEL0>; /* mac mode for uniphy instance2*/
+	switch_lan_bmp = <(ESS_PORT2 | ESS_PORT3 | ESS_PORT4)>;
+	switch_wan_bmp = <ESS_PORT6>;
+	switch_mac_mode = <MAC_MODE_PSGMII>;
+	switch_mac_mode1 = <MAC_MODE_SGMII_CHANNEL0>;
+	switch_mac_mode2 = <MAC_MODE_SGMII_CHANNEL0>;
 
 	qcom,port_phyinfo {
 		port@2 {

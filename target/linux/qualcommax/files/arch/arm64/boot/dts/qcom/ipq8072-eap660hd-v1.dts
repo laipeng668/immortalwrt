@@ -1,13 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-or-later OR BSD-2-Clause
-
 /dts-v1/;
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
 #include "ipq8074-ess.dtsi"
-#include <dt-bindings/leds/common.h>
-#include <dt-bindings/input/input.h>
+#include "ipq8074-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "TP-Link EAP660 HD v1";
@@ -74,7 +74,7 @@
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 25 GPIO_ACTIVE_LOW>;
-	
+
 	qca8081_28: ethernet-phy@28 {
 		compatible = "ethernet-phy-ieee802.3-c22";
 		reg = <28>;
