@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-
 /dts-v1/;
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
 #include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/leds/common.h>
 #include <dt-bindings/input/input.h>
@@ -24,7 +24,7 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
-		bootargs-append = " ubi.mtd=user_property root=/dev/ubiblock1_0";
+		bootargs-append = "ubi.mtd=user_property root=/dev/ubiblock1_0";
 	};
 
 	leds {
@@ -221,8 +221,8 @@
 	 * Multiple entries in reset-gpios of mdio may not be supported, but
 	 * leave the following as-is to show that the those reset pin exists.
 	 */
-	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>, /* QCA8075 RESET */
-		      <&tlmm 63 GPIO_ACTIVE_LOW>; /* AQR113C RESET (2x) */
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>,
+		      <&tlmm 63 GPIO_ACTIVE_LOW>;
 
 	aqr113c_1: ethernet-phy@0 {
 		compatible = "ethernet-phy-ieee802.3-c45";

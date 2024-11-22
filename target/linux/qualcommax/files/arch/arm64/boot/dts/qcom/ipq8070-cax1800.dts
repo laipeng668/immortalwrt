@@ -1,13 +1,13 @@
-// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/* Copyright (c) 2021, Dirk Buchwalder <buchwalder@posteo.de> */
-
 /dts-v1/;
 
 #include "ipq8074-512m.dtsi"
 #include "ipq8074-ac-cpu.dtsi"
 #include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
+#include <dt-bindings/leds/common.h>
 
 / {
 	model = "Edimax CAX1800";
@@ -278,8 +278,8 @@
 &switch {
 	status = "okay";
 
-	switch_lan_bmp = <ESS_PORT5>; /* lan port bitmap */
-	switch_mac_mode = <MAC_MODE_PSGMII>; /* mac mode for uniphy instance0*/
+	switch_lan_bmp = <ESS_PORT5>;
+	switch_mac_mode = <MAC_MODE_PSGMII>;
 
 	qcom,port_phyinfo {
 		port@5 {

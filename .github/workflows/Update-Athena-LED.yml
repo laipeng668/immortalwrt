@@ -1,0 +1,59 @@
+name: Update-Athena-LED
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: 0 0 * * 0
+
+env:
+  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+permissions: write-all
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Old Workflows
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          retain_days: 0
+          keep_minimum_runs: 1
+
+  update:
+    runs-on: ubuntu-latest
+    needs: cleanup
+    steps:
+      - name: Checkout Projects
+        uses: actions/checkout@main
+
+      - name: Update Athena LED
+        run: |
+          cd ./package/emortal/
+          PKG_NAME=luci-app-athena-led
+          OLD_VER=$(grep -Po "PKG_VERSION:=\K.*" "./$PKG_NAME/Makefile")
+          NEW_VER=$(curl -sL "https://api.github.com/repos/NONGFAH/luci-app-athena-led/releases" | jq -r "map(select(.prerelease|not)) | first | .tag_name")
+
+          if [[ $NEW_VER =~ ^[0-9].* ]] && dpkg --compare-versions "$OLD_VER" lt "$NEW_VER"; then
+            rm -rf ./$PKG_NAME
+            curl -sL -o ./athena-led.zip https://github.com/NONGFAH/luci-app-athena-led/archive/refs/heads/main.zip
+            unzip ./athena-led.zip -d ./
+            mv ./luci-app-athena-led-main ./$PKG_NAME && rm -rf ./athena-led.zip
+            chmod +x -R ./$PKG_NAME/root/usr/sbin/* && chmod +x -R ./$PKG_NAME/root/etc/init.d/*
+
+            echo "$PKG_NAME version has been updated!"
+            echo -e "CHANGE_STAT=1" >> "$GITHUB_ENV"
+            echo -e "PKG_NAME=$PKG_NAME" >> "$GITHUB_ENV"
+            echo -e "NEW_VER=$NEW_VER" >> "$GITHUB_ENV"
+          else
+            echo "$PKG_NAME version is already the latest!"
+          fi
+
+      - name: Commit Changes
+        if: ${{ env.CHANGE_STAT }}
+        run: |
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "<github-actions[bot]@users.noreply.github.com>"
+          git add .
+          git commit -m "${{env.PKG_NAME}}: update version to ${{env.NEW_VER}}"
+          git push -f origin HEAD:main
