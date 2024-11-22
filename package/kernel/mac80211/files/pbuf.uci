@@ -1,8 +1,8 @@
 config general opt
-  option auto_scale 'off'
+  option auto_scale '1'
   # option memory_profile 'off'
   option memory_profile 'auto'
   # option memory_profile '1gb'
   # option memory_profile '512mb'
   # option memory_profile '256mb'
-  option scaling_governor 'performance'
+  option scaling_governor 'schedutil'
