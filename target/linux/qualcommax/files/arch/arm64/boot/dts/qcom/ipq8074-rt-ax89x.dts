@@ -1,11 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-/* Copyright (c) 2024, Robert Marko <robimarko@gmail.com> */
-
 /dts-v1/;
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
 #include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
@@ -32,7 +31,7 @@
 	chosen {
 		stdout-path = "serial0:115200n8";
 		/* We have to override root and ubi device passed by bootloader */
-		bootargs-append = " ubi.block=0,jffs2 root=/dev/ubiblock0_4";
+		bootargs-append = "ubi.block=0,jffs2 root=/dev/ubiblock0_4";
 	};
 
 	keys {
@@ -259,17 +258,21 @@
 
 &tlmm {
 	button_pins: button-state {
-		pins = "gpio25", "gpio26", "gpio34", "gpio61";
-		function = "gpio";
-		drive-strength = <8>;
-		bias-pull-up;
+		mux {
+			pins = "gpio25", "gpio26", "gpio34", "gpio61";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
 	};
 
 	i2c_pins: i2c-pins {
-		pins = "gpio42", "gpio43";
-		function = "blsp1_i2c";
-		drive-strength = <8>;
-		bias-disable;
+		mux {
+			pins = "gpio42", "gpio43";
+			function = "blsp1_i2c";
+			drive-strength = <8>;
+			bias-disable;
+		};
 	};
 
 	mdio_pins: mdio-pins {
@@ -289,10 +292,12 @@
 	};
 
 	mdio_gpio_pins: mdio-gpio-pins {
-		pins = "gpio54", "gpio56";
-		function = "gpio";
-		drive-strength = <8>;
-		bias-pull-up;
+		mux {
+			pins = "gpio54", "gpio56";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-up;
+		};
 	};
 
 	uniphy_pins: uniphy_pinmux {
@@ -335,8 +340,7 @@
 		};
 
 		default_off {
-			pins = "gpio18", "gpio19", "gpio20", "gpio47",
-			       "gpio44", "gpio35", "gpio36";
+			pins = "gpio18", "gpio19", "gpio20", "gpio47", "gpio44", "gpio35", "gpio36";
 			function = "gpio";
 			drive-strength = <8>;
 			bias-pull-down;
@@ -646,11 +650,11 @@
 	pinctrl-0 = <&uniphy_pins>;
 	pinctrl-names = "default";
 
-	switch_lan_bmp = <(ESS_PORT1 | ESS_PORT2 | ESS_PORT3 | ESS_PORT5 | ESS_PORT6)>; /* lan port bitmap */
-	switch_wan_bmp = <ESS_PORT4>; /* wan port bitmap */
-	switch_mac_mode = <MAC_MODE_QSGMII>; /* mac mode for uniphy instance0*/
-	switch_mac_mode1 = <MAC_MODE_10GBASE_R>; /* mac mode for uniphy instance1*/
-	switch_mac_mode2 = <MAC_MODE_USXGMII>; /* mac mode for uniphy instance2*/
+	switch_lan_bmp = <(ESS_PORT1 | ESS_PORT2 | ESS_PORT3 | ESS_PORT5 | ESS_PORT6)>;
+	switch_wan_bmp = <ESS_PORT4>;
+	switch_mac_mode = <MAC_MODE_QSGMII>;
+	switch_mac_mode1 = <MAC_MODE_10GBASE_R>;
+	switch_mac_mode2 = <MAC_MODE_USXGMII>;
 
 	qcom,port_phyinfo {
 		port@0 {
@@ -674,8 +678,8 @@
 			port_id = <5>;
 			phy_address = <30>;
 			phy_i2c_address = <30>;
-			phy-i2c-mode; /*i2c access phy */
-			media-type = "sfp"; /* fiber mode */
+			phy-i2c-mode;
+			media-type = "sfp";
 			sfp_tx_dis_pin = <&tlmm 48 GPIO_ACTIVE_HIGH>;
 			sfp_mod_present_pin = <&tlmm 46 GPIO_ACTIVE_LOW>;
 		};

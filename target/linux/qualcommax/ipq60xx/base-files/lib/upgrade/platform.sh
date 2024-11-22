@@ -37,6 +37,13 @@ platform_do_upgrade() {
 		fw_setenv bootcount 0
 		nand_do_upgrade "$1"
 		;;
+	cmiot,ax18|\
+	glinet,gl-ax1800|\
+	glinet,gl-axt1800|\
+	qihoo,360v6|\
+	redmi,ax5|\
+	xiaomi,ax1800|\
+	zn,m2|\
 	netgear,wax214)
 		nand_do_upgrade "$1"
 		;;
@@ -51,6 +58,14 @@ platform_do_upgrade() {
 		fw_setenv owrt_bootcount 0
 		fw_setenv owrt_slotactive $((1 - active))
 		nand_do_upgrade "$1"
+		;;
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02|\
+	jdcloud,re-cs-07|\
+	redmi,ax5-jdcloud)
+		CI_KERNPART="0:HLOS"
+		CI_ROOTPART="rootfs"
+		emmc_do_upgrade "$1"
 		;;
 	*)
 		default_do_upgrade "$1"
