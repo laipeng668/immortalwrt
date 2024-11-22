@@ -12,7 +12,7 @@
 / {
 	/* Qualcomm Technologies, Inc. IPQ6018/AP-CP01-C3 */
 	model = "Cambium Networks XE3-4";
-	compatible = "cambiumnetworks,xe3-4", "qcom,ipq6018-cp01", "qcom,ipq6018";
+	compatible = "cambiumnetworks,xe3-4", "qcom,ipq6018";
 
 	aliases {
 		serial0 = &blsp1_uart3;

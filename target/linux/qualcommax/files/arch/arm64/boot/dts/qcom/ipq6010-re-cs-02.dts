@@ -180,7 +180,8 @@
 
 			compatible = "pci17cb,1104";
 			qcom,ath11k-fw-memory-mode = <1>;
-			qcom,ath11k-calibration-variant = "JDC-AX6600";
+			qcom,ath11k-calibration-variant = "JDC-RE-CS-02";
+			qcom,board_id = <163>;
 			reg = <0x00010000 0 0 0 0>;
 		};
 	};
@@ -261,7 +262,8 @@
 &wifi {
 	status = "okay";
 	qcom,ath11k-fw-memory-mode = <1>;
-	qcom,ath11k-calibration-variant = "JDC-AX1800-Pro";
+	qcom,ath11k-calibration-variant = "JDC-RE-CS-02";
+	qcom,board_id = <19>;
 };
 
 &dp1 {
@@ -295,9 +297,9 @@
 };
 
 &usb3 {
+	status = "okay";
 	pinctrl-0 = <&usb_pwr_pins>;
 	pinctrl-names = "default";
-	status = "okay";
 };
 
 &edma {
