@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0-only
-
 #include "ipq6018.dtsi"
 
 &rpm_msg_ram {
@@ -20,4 +18,8 @@
 &q6_region {
 	reg = <0x0 0x4ab00000 0x0 0x03700000>;
 	no-map;
+};
+
+&ramoops_region {
+	reg = <0x0 0x4e200000 0x0 0x100000>;
 };

@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
-
 /dts-v1/;
 
 #include "ipq6018.dtsi"
 #include "ipq6018-cp-cpu.dtsi"
 #include "ipq6018-ess.dtsi"
+#include "ipq6018-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
@@ -55,6 +55,15 @@
 };
 
 &tlmm {
+	led_pins: led-pins {
+		leds {
+			pins = "gpio66", "gpio67";
+			function = "gpio";
+			drive-strength = <8>;
+			bias-pull-down;
+		};
+	};
+
 	mdio_pins: mdio-pins {
 		mdc {
 			pins = "gpio64";
@@ -78,16 +87,7 @@
 		bias-pull-down;
 	};
 
-	led_pins: led_pins {
-		leds {
-			pins = "gpio66", "gpio67";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-down;
-		};
-	};
-
-	sd_pins: sd_pins {
+	sd_pins: sd-pins {
 		sd_cd {
 			 pins = "gpio62";
 			 function = "gpio";
@@ -202,7 +202,7 @@
 &dp3 {
 	status = "okay";
 
-	phy-handle = <&qca8072_1>;
+	phy-handle = <&qca8072_4>;
 	nvmem-cells = <&macaddr_eth1>;
 	nvmem-cell-names = "mac-address";
 	label = "lan2";
@@ -211,7 +211,7 @@
 &dp4 {
 	status = "okay";
 
-	phy-handle = <&qca8072_0>;
+	phy-handle = <&qca8072_3>;
 	nvmem-cells = <&macaddr_eth0>;
 	nvmem-cell-names = "mac-address";
 	label = "lan1";
@@ -247,12 +247,12 @@
 
 		qcom,package-mode = "psgmii";
 
-		qca8072_0: ethernet-phy@3 {
+		qca8072_3: ethernet-phy@3 {
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <3>;
 		};
 
-		qca8072_1: ethernet-phy@4 {
+		qca8072_4: ethernet-phy@4 {
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <4>;
 		};
