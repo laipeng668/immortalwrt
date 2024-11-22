@@ -19,7 +19,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
 
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
-@@ -3184,6 +3184,19 @@ ieee80211_get_alt_retry_rate(const struc
+@@ -3187,6 +3187,19 @@ ieee80211_get_alt_retry_rate(const struc
  void ieee80211_free_txskb(struct ieee80211_hw *hw, struct sk_buff *skb);
  
  /**
@@ -41,7 +41,7 @@ Signed-off-by: Johannes Berg <johannes.berg@intel.com>
   * mac80211 is capable of taking advantage of many hardware
 --- a/net/mac80211/ieee80211_i.h
 +++ b/net/mac80211/ieee80211_i.h
-@@ -2077,8 +2077,6 @@ void __ieee80211_subif_start_xmit(struct
+@@ -2079,8 +2079,6 @@ void __ieee80211_subif_start_xmit(struct
  				  u32 info_flags,
  				  u32 ctrl_flags,
  				  u64 *cookie);

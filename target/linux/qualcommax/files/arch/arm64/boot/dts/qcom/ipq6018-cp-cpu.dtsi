@@ -1,5 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
-
+#include <dt-bindings/thermal/thermal.h>
 #include "ipq6018-cpr-regulator.dtsi"
 
 &CPU0 {

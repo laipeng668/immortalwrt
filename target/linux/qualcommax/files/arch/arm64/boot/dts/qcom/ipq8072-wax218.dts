@@ -3,10 +3,11 @@
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
 #include "ipq8074-ess.dtsi"
+#include "ipq8074-nss.dtsi"
 
+#include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
-#include <dt-bindings/gpio/gpio.h>
 
 / {
 	model = "Netgear WAX218";
@@ -26,7 +27,7 @@
 		 * Netgear's U-Boot adds "ubi.mtd=rootfs root=mtd:ubi_rootfs"
 		 * That fails to create a UBI block device, so add it here.
 		*/
-		bootargs-append = " ubi.block=0,rootfs root=/dev/ubiblock0_1";
+		bootargs-append = "ubi.block=0,rootfs root=/dev/ubiblock0_1";
 	};
 
 	keys {
