@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: GPL-2.0-only
-
 #include "ipq8074.dtsi"
 
 &tzapp_region {
@@ -16,4 +14,8 @@
 
 &m3_dump_region {
 	reg = <0x0 0x4e800000 0x0 0x100000>;
+};
+
+&ramoops_region {
+	reg = <0x0 0x4e900000 0x0 0x100000>;
 };

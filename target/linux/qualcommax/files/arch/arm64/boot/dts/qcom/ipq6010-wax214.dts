@@ -1,10 +1,10 @@
-// SPDX-License-Identifier: (GPL-2.0+)
-
 /dts-v1/;
 
 #include "ipq6018.dtsi"
 #include "ipq6018-cp-cpu.dtsi"
 #include "ipq6018-ess.dtsi"
+#include "ipq6018-nss.dtsi"
+
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
@@ -47,13 +47,13 @@
 			gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
 		};
 
-		lan  {
+		lan {
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_LAN;
 			gpios = <&tlmm 29 GPIO_ACTIVE_HIGH>;
 		};
 
-		wlan2g  {
+		wlan2g {
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_WLAN;
 			function-enumerator = <0>;
@@ -61,7 +61,7 @@
 			linux,default-trigger = "phy0radio";
 		};
 
-		wlan5g  {
+		wlan5g {
 			color = <LED_COLOR_ID_BLUE>;
 			function = LED_FUNCTION_WLAN;
 			function-enumerator = <1>;
@@ -163,7 +163,6 @@
 		};
 	};
 };
-
 
 &wifi {
 	status = "okay";
