@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # 获取无线设备的数量
 RADIO_NUM=$(uci show wireless | grep -c "wifi-device")
@@ -67,8 +67,10 @@ set_wifi_def_cfg() {
 }
 
 # 遍历所有无线设备并设置默认配置
-for ((i = 0; i < RADIO_NUM; i++)); do
+i=0
+while [ $i -lt "$RADIO_NUM" ]; do
 	set_wifi_def_cfg $i
+	i=$((i + 1))
 done
 
 # 提交配置并重启网络服务
