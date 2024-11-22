@@ -1,5 +1,5 @@
 #include "ipq6018-512m.dtsi"
-#include "ipq6018-cp-cpu.dtsi"
+#include "ipq6018-fixed-smps.dtsi"
 #include "ipq6018-ess.dtsi"
 #include "ipq6018-nss.dtsi"
 

@@ -509,7 +509,7 @@ define Device/aliyun_ap8220
 	PAGESIZE := 2048
 	DEVICE_DTS_CONFIG := config@ac02
 	SOC := ipq8071
-	DEVICE_PACKAGES := kmod-bluetooth
+	DEVICE_PACKAGES := ipq-wifi-aliyun_ap8220 kmod-bluetooth
 	IMAGE/factory.ubi := append-ubi | qsdk-ipq-factory-nand
 endef
 TARGET_DEVICES += aliyun_ap8220
