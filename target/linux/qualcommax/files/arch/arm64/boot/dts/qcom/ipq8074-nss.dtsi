@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
 / {
 	nss_dummy_reg: nss-regulator {
 		compatible = "regulator-fixed";
