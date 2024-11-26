@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
 #include "pmp8074.dtsi"
 
 &soc {
