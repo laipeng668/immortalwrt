@@ -21,9 +21,6 @@
 		led-failsafe = &led_pw;
 		led-running = &led_pw;
 		led-upgrade = &led_pw;
-
-		ethernet4 = &dp5;
-		ethernet5 = &dp6;
 	};
 
 	chosen {
@@ -72,6 +69,8 @@
 
 &tlmm {
 	button_pins: button-pins {
+		phandle = <0x52>;
+
 		mux {
 			pins = "gpio66";
 			function = "gpio";
@@ -80,7 +79,7 @@
 		};
 	};
 
-	usb_mux_sel_pins: usb-mux-pins {
+	usb_mux_pins: usb-mux-pins {
 		mux {
 			pins = "gpio27";
 			function = "gpio";
@@ -106,22 +105,38 @@
 	};
 
 	mdio_pins: mdio-pins {
-		mdc {
+		phandle = <0x27>;
+
+		mux_0 {
 			pins = "gpio68";
 			function = "mdc";
 			drive-strength = <8>;
 			bias-pull-up;
 		};
 
-		mdio {
+		mux_1 {
 			pins = "gpio69";
 			function = "mdio";
 			drive-strength = <8>;
 			bias-pull-up;
 		};
+
+		mux_2 {
+			pins = "gpio33";
+			function = "gpio";
+			bias-pull-up;
+		};
+
+		mux_3 {
+			pins = "gpio44";
+			function = "gpio";
+			bias-pull-up;
+		};
 	};
 
 	led_pins: led-pins {
+		phandle = <0x53>;
+
 		mux {
 			pins = "gpio46", "gpio47", "gpio48", "gpio50";
 			function = "gpio";
