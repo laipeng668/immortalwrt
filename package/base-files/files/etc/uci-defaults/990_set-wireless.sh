@@ -8,10 +8,9 @@ if [ "$RADIO_NUM" -eq 0 ]; then
 	exit 0
 fi
 
-# 获取默认的SSID，如果没有设置则使用"OWRT"
-BASE_SSID=$(uci get wireless.default_radio0.ssid 2>/dev/null)
-BASE_SSID=${BASE_SSID:-"OWRT"}
-FIRST_5G=""
+# 默认WIFI设置
+BASE_SSID='OWRT'
+BASE_WORD='12345678'
 
 # 配置无线设备
 configure_wifi() {
@@ -36,7 +35,7 @@ configure_wifi() {
 
 	uci set wireless.default_radio${radio}.ssid="${ssid}"
 	uci set wireless.default_radio${radio}.encryption='psk2+ccmp'
-	uci set wireless.default_radio${radio}.key="${key}"
+	uci set wireless.default_radio${radio}.key="${BASE_WORD}"
 	uci set wireless.default_radio${radio}.ieee80211k='1'
 	uci set wireless.default_radio${radio}.time_advertisement='2'
 	uci set wireless.default_radio${radio}.time_zone='CST-8'
@@ -46,11 +45,12 @@ configure_wifi() {
 }
 
 # 设置无线设备的默认配置
+FIRST_5G=''
 set_wifi_def_cfg() {
 	local band=$(uci get wireless.radio$1.band 2>/dev/null)
 
 	# 根据频段设置不同的SSID和信道
-	if [[ $band == "5g" ]]; then
+	if [[ "$band" == '5g' ]]; then
 		if [ -z "$FIRST_5G" ]; then
 			if [ $RADIO_NUM -eq 2 ]; then
 				configure_wifi $1 '149' "${BASE_SSID}-5G" '12345678'
