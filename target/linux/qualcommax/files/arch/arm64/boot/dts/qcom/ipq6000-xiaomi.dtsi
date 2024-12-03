@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later OR MIT
 
 #include "ipq6018-512m.dtsi"
-#include "ipq6018-fixed-smps.dtsi"
+#include "ipq6018-common.dtsi"
 #include "ipq6018-ess.dtsi"
 #include "ipq6018-nss.dtsi"
 
@@ -113,10 +113,6 @@
 	status = "okay";
 };
 
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -188,10 +184,6 @@
 	};
 };
 
-&edma {
-	status = "okay";
-};
-
 &dp2 {
 	status = "okay";
 	phy-handle = <&qca8075_1>;
@@ -222,18 +214,6 @@
 	qcom,ath11k-fw-memory-mode = <1>;
 };
 
-&qusb_phy_0 {
-	status = "ok";
-};
-
-&ssphy_0 {
-	status = "ok";
-};
-
-&usb2 {
+&edma {
 	status = "okay";
-};
-
-&usb3 {
-	status = "ok";
 };

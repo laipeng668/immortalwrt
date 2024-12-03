@@ -3,7 +3,7 @@
 /dts-v1/;
 
 #include "ipq6018.dtsi"
-#include "ipq6018-fixed-smps.dtsi"
+#include "ipq6018-common.dtsi"
 #include "ipq6018-ess.dtsi"
 #include "ipq6018-nss.dtsi"
 
@@ -12,7 +12,6 @@
 #include <dt-bindings/leds/common.h>
 
 / {
-	/* Qualcomm Technologies, Inc. IPQ6018/AP-CP01-C3 */
 	model = "Cambium Networks XE3-4";
 	compatible = "cambiumnetworks,xe3-4", "qcom,ipq6018";
 
@@ -146,10 +145,6 @@
 	};
 };
 
-&pcie_phy {
-	status = "okay";
-};
-
 &pcie0 {
 	status = "okay";
 	perst-gpio = <&tlmm 60 GPIO_ACTIVE_LOW>;
@@ -181,10 +176,6 @@
 	cd-gpios = <&tlmm 62 GPIO_ACTIVE_LOW>;
 	vqmmc-supply = <&reg_sd_vmmc>;
 	bus-width = <4>;
-};
-
-&edma {
-	status = "okay";
 };
 
 &switch {
@@ -396,10 +387,6 @@
 	};
 };
 
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -446,10 +433,6 @@
 	nvmem-cells = <&eth2addr>;
 };
 
-&qusb_phy_1 {
-	status = "okay";
-};
-
-&usb2 {
+&edma {
 	status = "okay";
 };

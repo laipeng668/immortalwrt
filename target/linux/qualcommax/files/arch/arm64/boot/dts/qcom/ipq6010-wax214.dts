@@ -3,7 +3,7 @@
 /dts-v1/;
 
 #include "ipq6018.dtsi"
-#include "ipq6018-fixed-smps.dtsi"
+#include "ipq6018-common.dtsi"
 #include "ipq6018-ess.dtsi"
 #include "ipq6018-nss.dtsi"
 
@@ -104,10 +104,6 @@
 	label = "lan";
 };
 
-&edma {
-	status = "okay";
-};
-
 &mdio {
 	status = "okay";
 	pinctrl-0 = <&mdio_pins>;
@@ -146,10 +142,6 @@
 	};
 };
 
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -170,4 +162,8 @@
 	status = "okay";
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "Netgear-WAX214";
+};
+
+&edma {
+	status = "okay";
 };
