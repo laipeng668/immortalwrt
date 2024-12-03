@@ -84,7 +84,7 @@ v1 -> v2: fix clocks typo; fix reg size warning.
 
 --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
-@@ -633,6 +633,21 @@
+@@ -649,6 +649,21 @@
  			status = "disabled";
  		};
  
