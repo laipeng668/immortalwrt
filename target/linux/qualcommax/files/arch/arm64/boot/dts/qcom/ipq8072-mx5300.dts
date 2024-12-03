@@ -4,6 +4,7 @@
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
+#include "ipq8074-common.dtsi"
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 
@@ -114,26 +115,6 @@
 	 *	};
 	 *};
 	 */
-};
-
-&blsp1_uart5 {
-	status = "okay";
-};
-
-&prng {
-	status = "okay";
-};
-
-&cryptobam {
-	status = "okay";
-};
-
-&crypto {
-	status = "okay";
-};
-
-&qpic_bam {
-	status = "okay";
 };
 
 &qpic_nand {
@@ -469,10 +450,6 @@
 	};
 };
 
-&edma {
-	status = "okay";
-};
-
 &dp1 {
 	status = "okay";
 	phy-handle = <&qca8075_0>;
@@ -503,22 +480,6 @@
 	label = "wan";
 };
 
-&ssphy_0 {
-	status = "okay";
-};
-
-&qusb_phy_0 {
-	status = "okay";
-};
-
-&usb_0 {
-	status = "okay";
-};
-
-&pcie_qmp1 {
-	status = "okay";
-};
-
 &pcie1 {
 	status = "okay";
 
@@ -547,4 +508,8 @@
 	status = "okay";
 
 	qcom,ath11k-calibration-variant = "Linksys-MX5300";
+};
+
+&edma {
+	status = "okay";
 };
