@@ -3,7 +3,7 @@
 /dts-v1/;
 
 #include "ipq6018.dtsi"
-#include "ipq6018-fixed-smps.dtsi"
+#include "ipq6018-common.dtsi"
 #include "ipq6018-ess.dtsi"
 #include "ipq6018-nss.dtsi"
 
@@ -229,10 +229,6 @@
 	label = "wan";
 };
 
-&edma {
-	status = "okay";
-};
-
 &mdio {
 	status = "okay";
 	pinctrl-0 = <&mdio_pins>;
@@ -304,10 +300,6 @@
 	};
 };
 
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -331,10 +323,6 @@
 	};
 };
 
-&pcie_phy {
-	status = "okay";
-};
-
 &pcie0 {
 	status = "okay";
 	perst-gpio = <&tlmm 60 GPIO_ACTIVE_LOW>;
@@ -345,22 +333,6 @@
 	qcom,ath11k-calibration-variant = "8devices-Mango";
 };
 
-&qusb_phy_1 {
-	status = "okay";
-};
-
-&usb2 {
-	status = "okay";
-};
-
-&qusb_phy_0 {
-	status = "okay";
-};
-
-&ssphy_0 {
-	status = "okay";
-};
-
-&usb3 {
+&edma {
 	status = "okay";
 };

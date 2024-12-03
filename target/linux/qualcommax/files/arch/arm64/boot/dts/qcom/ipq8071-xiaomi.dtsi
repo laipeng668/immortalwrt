@@ -2,6 +2,7 @@
 
 #include "ipq8074-512m.dtsi"
 #include "ipq8074-ac-cpu.dtsi"
+#include "ipq8074-common.dtsi"
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 
@@ -51,26 +52,6 @@
 			bias-pull-up;
 		};
 	};
-};
-
-&blsp1_uart5 {
-	status = "okay";
-};
-
-&prng {
-	status = "okay";
-};
-
-&cryptobam {
-	status = "okay";
-};
-
-&crypto {
-	status = "okay";
-};
-
-&qpic_bam {
-	status = "okay";
 };
 
 &qpic_nand {
@@ -270,10 +251,6 @@
 	};
 };
 
-&edma {
-	status = "okay";
-};
-
 &dp2 {
 	status = "okay";
 	phy-handle = <&qca8075_1>;
@@ -309,4 +286,8 @@
 &wifi {
 	status = "okay";
 	qcom,ath11k-fw-memory-mode = <1>;
+};
+
+&edma {
+	status = "okay";
 };
