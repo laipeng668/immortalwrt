@@ -4,6 +4,7 @@
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
+#include "ipq8074-common.dtsi"
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 
@@ -86,50 +87,6 @@
 			bias-disable;
 		};
 	};
-};
-
-&blsp1_uart5 {
-	status = "okay";
-};
-
-&prng {
-	status = "okay";
-};
-
-&ssphy_0 {
-	status = "okay";
-};
-
-&qusb_phy_0 {
-	status = "okay";
-};
-
-&ssphy_1 {
-	status = "okay";
-};
-
-&qusb_phy_1 {
-	status = "okay";
-};
-
-&usb_0 {
-	status = "okay";
-};
-
-&usb_1 {
-	status = "okay";
-};
-
-&cryptobam {
-	status = "okay";
-};
-
-&crypto {
-	status = "okay";
-};
-
-&qpic_bam {
-	status = "okay";
 };
 
 &blsp1_spi1 {
@@ -233,10 +190,6 @@
 	};
 };
 
-&edma {
-	status = "okay";
-};
-
 /* Dummy LAN port */
 &dp1 {
 	status = "disabled";
@@ -270,10 +223,6 @@
 	label = "wan";
 };
 
-&pcie_qmp0 {
-	status = "okay";
-};
-
 &pcie0 {
 	status = "okay";
 
@@ -285,10 +234,6 @@
 		#size-cells = <2>;
 		ranges;
 	};
-};
-
-&pcie_qmp1 {
-	status = "okay";
 };
 
 &pcie1 {
@@ -356,4 +301,8 @@
 			reg = <2>;
 		};
 	};
+};
+
+&edma {
+	status = "okay";
 };

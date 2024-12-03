@@ -4,6 +4,7 @@
 
 #include "ipq8074.dtsi"
 #include "ipq8074-ac-cpu.dtsi"
+#include "ipq8074-common.dtsi"
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 
@@ -222,26 +223,6 @@
 	};
 };
 
-&blsp1_uart5 {
-	status = "okay";
-};
-
-&cryptobam {
-	status = "okay";
-};
-
-&crypto {
-	status = "okay";
-};
-
-&prng {
-	status = "okay";
-};
-
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -310,10 +291,6 @@
 	qcom,board_id = <658>;
 };
 
-&edma {
-	status = "okay";
-};
-
 &dp5 {
 	status = "okay";
 	phy-handle = <&qca8081_24>;
@@ -324,4 +301,8 @@
 	status = "okay";
 	phy-handle = <&qca8081_28>;
 	label = "wan";
+};
+
+&edma {
+	status = "okay";
 };

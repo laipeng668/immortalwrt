@@ -4,6 +4,7 @@
 
 #include "ipq8074.dtsi"
 #include "ipq8074-hk-cpu.dtsi"
+#include "ipq8074-common.dtsi"
 #include "ipq8074-ess.dtsi"
 #include "ipq8074-nss.dtsi"
 
@@ -47,10 +48,6 @@
 			color = <LED_COLOR_ID_BLUE>;
 		};
 	};
-};
-
-&blsp1_uart5 {
-	status = "okay";
 };
 
 &tlmm {
@@ -104,14 +101,6 @@
 	};
 };
 
-&edma {
-	status = "okay";
-};
-
-&qpic_bam {
-	status = "okay";
-};
-
 &qpic_nand {
 	status = "okay";
 
@@ -130,4 +119,8 @@
 &wifi {
 	status = "okay";
 	qcom,ath11k-calibration-variant = "TP-Link-EAP660-HD-v1";
+};
+
+&edma {
+	status = "okay";
 };
