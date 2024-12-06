@@ -9,7 +9,7 @@ Subject: [PATCH] arm64: dts: qcom: ipq6018: assign some clock to wifi remoteproc
 
 --- a/arch/arm64/boot/dts/qcom/ipq6018.dtsi
 +++ b/arch/arm64/boot/dts/qcom/ipq6018.dtsi
-@@ -978,8 +978,26 @@
+@@ -992,8 +992,26 @@
  				      "wcss_reset",
  				      "wcss_q6_reset";
  
