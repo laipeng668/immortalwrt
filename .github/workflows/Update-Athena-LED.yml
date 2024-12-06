@@ -14,11 +14,12 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete Old Workflows
-        uses: Mattraks/delete-workflow-runs@main
+      - name: Delete old Releases and Workflows
+        uses: ophub/delete-releases-workflows@main
         with:
-          retain_days: 0
-          keep_minimum_runs: 1
+          gh_token: ${{secrets.GITHUB_TOKEN}}
+          delete_workflows: true
+          workflows_keep_day: 0
 
   update:
     runs-on: ubuntu-latest
@@ -42,12 +43,13 @@ jobs:
             chmod +x -R ./$PKG_NAME/root/usr/sbin/* && chmod +x -R ./$PKG_NAME/root/etc/init.d/*
 
             echo "$PKG_NAME version has been updated!"
-            echo -e "CHANGE_STAT=1" >> "$GITHUB_ENV"
-            echo -e "PKG_NAME=$PKG_NAME" >> "$GITHUB_ENV"
-            echo -e "NEW_VER=$NEW_VER" >> "$GITHUB_ENV"
+            echo "PKG_NAME=$PKG_NAME" >> "$GITHUB_ENV"
+            echo "NEW_VER=$NEW_VER" >> "$GITHUB_ENV"
           else
             echo "$PKG_NAME version is already the latest!"
           fi
+
+          [ -z "$(git status -s)" ] || echo -e "CHANGE_STAT=1" >> "$GITHUB_ENV"
 
       - name: Commit Changes
         if: ${{ env.CHANGE_STAT }}
