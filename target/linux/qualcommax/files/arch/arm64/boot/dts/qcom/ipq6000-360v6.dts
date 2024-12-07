@@ -110,6 +110,29 @@
 	};
 };
 
+&blsp1_uart3 {
+	status = "okay";
+
+	pinctrl-0 = <&serial_3_pins>;
+	pinctrl-names = "default";
+};
+
+&qpic_nand {
+	status = "okay";
+
+	nand@0 {
+		reg = <0>;
+
+		nand-ecc-strength = <4>;
+		nand-ecc-step-size = <512>;
+		nand-bus-width = <8>;
+
+		partitions {
+			compatible = "qcom,smem-part";
+		};
+	};
+};
+
 &mdio {
 	status = "okay";
 	pinctrl-0 = <&mdio_pins>;
@@ -169,29 +192,6 @@
 	};
 };
 
-&blsp1_uart3 {
-	status = "okay";
-
-	pinctrl-0 = <&serial_3_pins>;
-	pinctrl-names = "default";
-};
-
-&qpic_nand {
-	status = "okay";
-
-	nand@0 {
-		reg = <0>;
-
-		nand-ecc-strength = <4>;
-		nand-ecc-step-size = <512>;
-		nand-bus-width = <8>;
-
-		partitions {
-			compatible = "qcom,smem-part";
-		};
-	};
-};
-
 &wifi {
 	status = "okay";
 
@@ -203,7 +203,7 @@
 	status = "okay";
 
 	phy-handle = <&qca8075_0>;
-	label = "lan3";
+	label = "lan1";
 };
 
 &dp2 {
@@ -217,7 +217,7 @@
 	status = "okay";
 
 	phy-handle = <&qca8075_2>;
-	label = "lan1";
+	label = "lan3";
 };
 
 &dp4 {
