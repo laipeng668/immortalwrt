@@ -21,20 +21,21 @@ ipq60xx_setup_interfaces()
 	netgear,wax214)
 		ucidef_set_interface_lan "lan" "dhcp"
 		;;
-	glinet,gl-ax1800|\
-	jdcloud,re-cs-02|\
-	yuncore,fap650)
-		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
-		;;
 	cmiot,ax18|\
 	jdcloud,re-ss-01|\
 	jdcloud,re-cs-07|\
-	qihoo,360v6|\
 	redmi,ax5|\
 	redmi,ax5-jdcloud|\
 	xiaomi,ax1800|\
-	zn,m2)
+	zn,m2|\
+	qihoo,360v6)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
+		;;
+	glinet,gl-ax1800|\
+	jdcloud,re-cs-02|\
+	linksys,mr7350|\
+	yuncore,fap650)
+		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
 		;;
 	*)
 		echo "Unsupported hardware. Network interfaces not initialized"
@@ -50,9 +51,15 @@ ipq60xx_setup_macs()
 	local label_mac=""
 
 	case "$board" in
+	linksys,mr7350)
+		label_mac=$(mtd_get_mac_ascii devinfo hw_mac_addr)
+		lan_mac=$label_mac
+		wan_mac=$label_mac
+		;;
 	qihoo,360v6)
 		lan_mac=$(mtd_get_mac_ascii factory lanMac)
 		wan_mac=$(macaddr_add "$lan_mac" 1)
+		label_mac=$lan_mac
 		;;
 	esac
 
