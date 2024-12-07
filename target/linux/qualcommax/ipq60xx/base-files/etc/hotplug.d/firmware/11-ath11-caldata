@@ -22,6 +22,7 @@ case "$FIRMWARE" in
 	redmi,ax5|\
 	xiaomi,ax1800|\
 	zn,m2|\
+	linksys,mr7350|\
 	netgear,wax214)
 		caldata_extract "0:art" 0x1000 0x10000
 		;;
