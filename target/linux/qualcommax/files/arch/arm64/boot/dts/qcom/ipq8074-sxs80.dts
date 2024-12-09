@@ -2,7 +2,7 @@
 
 /dts-v1/;
 
-#include "ipq8074-sxk80.dtsi"
+#include "ipq8074-netgear.dtsi"
 
 / {
 	model = "Netgear SXS80";

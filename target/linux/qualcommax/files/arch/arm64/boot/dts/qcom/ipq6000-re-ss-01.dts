@@ -54,8 +54,6 @@
 
 	leds {
 		compatible = "gpio-leds";
-		pinctrl-0 = <&leds_pins>;
-		pinctrl-names = "default";
 
 		led_status_red: red {
 			label = "red:status";
@@ -83,15 +81,6 @@
 			function = "gpio";
 			drive-strength = <8>;
 			bias-pull-up;
-		};
-	};
-
-	leds_pins: leds-pins {
-		mux {
-			pins = "gpio35", "gpio37", "gpio50";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-down;
 		};
 	};
 
@@ -134,24 +123,31 @@
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
 
-	qca8075_1: ethernet-phy@1 {
-		compatible = "ethernet-phy-ieee802.3-c22";
-		reg = <1>;
-	};
+	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0>;
 
-	qca8075_2: ethernet-phy@2 {
-		compatible = "ethernet-phy-ieee802.3-c22";
-		reg = <2>;
-	};
+		qca8075_1: ethernet-phy@1 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <1>;
+		};
 
-	qca8075_3: ethernet-phy@3 {
-		compatible = "ethernet-phy-ieee802.3-c22";
-		reg = <3>;
-	};
+		qca8075_2: ethernet-phy@2 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <2>;
+		};
 
-	qca8075_4: ethernet-phy@4 {
-		compatible = "ethernet-phy-ieee802.3-c22";
-		reg = <4>;
+		qca8075_3: ethernet-phy@3 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <3>;
+		};
+
+		qca8075_4: ethernet-phy@4 {
+			compatible = "ethernet-phy-ieee802.3-c22";
+			reg = <4>;
+		};
 	};
 };
 
@@ -161,8 +157,6 @@
 	switch_lan_bmp = <(ESS_PORT2 | ESS_PORT3 | ESS_PORT4)>;
 	switch_wan_bmp = <ESS_PORT5>;
 	switch_mac_mode = <MAC_MODE_PSGMII>;
-	switch_mac_mode1 = <MAC_MODE_DISABLED>;
-	switch_mac_mode2 = <MAC_MODE_DISABLED>;
 
 	qcom,port_phyinfo {
 		port@2 {
