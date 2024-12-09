@@ -296,8 +296,8 @@
 
 	switch_lan_bmp = <ESS_PORT6>;
 	switch_wan_bmp = <ESS_PORT5>;
-	switch_mac_mode1 = <MAC_MODE_SGMII_CHANNEL0>;
-	switch_mac_mode2 = <MAC_MODE_SGMII_CHANNEL0>;
+	switch_mac_mode1 = <MAC_MODE_SGMII_PLUS>;
+	switch_mac_mode2 = <MAC_MODE_SGMII_PLUS>;
 
 	qcom,port_phyinfo {
 		port@5 {
@@ -328,6 +328,7 @@
 
 &wifi {
 	status = "okay";
+	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "Yuncore-AX880";
 };
 

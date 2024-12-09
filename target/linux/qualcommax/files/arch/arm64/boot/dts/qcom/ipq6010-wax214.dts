@@ -115,12 +115,10 @@
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
 
 	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		compatible = "qcom,qca8075-package";
 		reg = <0>;
-
-		qcom,package-mode = "psgmii";
 
 		qca8072_4: ethernet-phy@4 {
 			compatible = "ethernet-phy-ieee802.3-c22";

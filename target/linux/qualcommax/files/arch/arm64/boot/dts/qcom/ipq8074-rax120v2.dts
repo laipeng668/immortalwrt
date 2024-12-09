@@ -29,7 +29,7 @@
 
 	chosen {
 		stdout-path = "serial0:115200n8";
-		bootargs-append = "ubi.mtd=rootfs root=/dev/ubiblock0_0";
+		bootargs-append = " ubi.mtd=rootfs root=/dev/ubiblock0_0";
 	};
 
 	keys {
@@ -156,11 +156,12 @@
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0>;
 
-		compatible = "qcom,qca8075-package";
+		qcom,package-mode = "qsgmii";
 
 		qca8075_0: ethernet-phy@0 {
 			compatible = "ethernet-phy-ieee802.3-c22";
@@ -200,7 +201,7 @@
 
 	switch_lan_bmp = <(ESS_PORT1 | ESS_PORT2 | ESS_PORT3 | ESS_PORT4 | ESS_PORT6)>;
 	switch_wan_bmp = <ESS_PORT5>;
-	switch_mac_mode = <MAC_MODE_PSGMII>;
+	switch_mac_mode = <MAC_MODE_QSGMII>;
 	switch_mac_mode2 = <MAC_MODE_USXGMII>;
 
 	qcom,port_phyinfo {
@@ -494,7 +495,7 @@
 
 &wifi{
 	status = "okay";
-
+	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "Netgear-RAX120v2";
 };
 
