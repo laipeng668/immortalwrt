@@ -35,8 +35,6 @@
 
 	leds {
 		compatible = "gpio-leds";
-		pinctrl-0 = <&led_pins>;
-		pinctrl-names = "default";
 
 		wlan5g {
 			color = <LED_COLOR_ID_GREEN>;
@@ -57,15 +55,6 @@
 };
 
 &tlmm {
-	led_pins: led-pins {
-		leds {
-			pins = "gpio66", "gpio67";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-down;
-		};
-	};
-
 	mdio_pins: mdio-pins {
 		mdc {
 			pins = "gpio64";
@@ -222,7 +211,6 @@
 &dp5 {
 	status = "okay";
 
-	phy-mode = "sgmii";
 	phy-handle = <&qca8081>;
 	nvmem-cells = <&macaddr_eth2>;
 	nvmem-cell-names = "mac-address";
@@ -237,12 +225,10 @@
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
 
 	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		compatible = "qcom,qca8075-package";
 		reg = <0>;
-
-		qcom,package-mode = "psgmii";
 
 		qca8072_3: ethernet-phy@3 {
 			compatible = "ethernet-phy-ieee802.3-c22";
@@ -325,11 +311,12 @@
 
 &pcie0 {
 	status = "okay";
-	perst-gpio = <&tlmm 60 GPIO_ACTIVE_LOW>;
+	perst-gpios = <&tlmm 60 GPIO_ACTIVE_LOW>;
 };
 
 &wifi {
 	status = "okay";
+	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "8devices-Mango";
 };
 

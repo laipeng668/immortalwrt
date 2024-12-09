@@ -17,48 +17,35 @@
 
 	leds {
 		compatible = "gpio-leds";
-		pinctrl-0 = <&leds_pins>;
-		pinctrl-names = "default";
 
 		led_power: power {
 			label = "blue:power";
-			gpio = <&tlmm 58 GPIO_ACTIVE_HIGH>;
+			gpios = <&tlmm 58 GPIO_ACTIVE_HIGH>;
 		};
 
 		mesh {
 			label = "blue:mesh";
-			gpio = <&tlmm 73 GPIO_ACTIVE_HIGH>;
+			gpios = <&tlmm 73 GPIO_ACTIVE_HIGH>;
 		};
 
 		lan {
 			label = "blue:lan";
-			gpio = <&tlmm 74 GPIO_ACTIVE_HIGH>;
+			gpios = <&tlmm 74 GPIO_ACTIVE_HIGH>;
 		};
 
 		wan {
 			label = "blue:wan";
-			gpio = <&tlmm 37 GPIO_ACTIVE_HIGH>;
+			gpios = <&tlmm 37 GPIO_ACTIVE_HIGH>;
 		};
 
 		wlan5g {
 			label = "blue:wlan5g";
-			gpio = <&tlmm 35 GPIO_ACTIVE_HIGH>;
+			gpios = <&tlmm 35 GPIO_ACTIVE_HIGH>;
 		};
 
 		wlan2g {
 			label = "blue:wlan2g";
-			gpio = <&tlmm 70 GPIO_ACTIVE_HIGH>;
-		};
-	};
-};
-
-&tlmm {
-	leds_pins: leds-pins {
-		mux {
-			pins = "gpio35", "gpio37", "gpio58", "gpio70", "gpio73", "gpio74";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-down;
+			gpios = <&tlmm 70 GPIO_ACTIVE_HIGH>;
 		};
 	};
 };
