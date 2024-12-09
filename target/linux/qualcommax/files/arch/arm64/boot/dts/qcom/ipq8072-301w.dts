@@ -58,8 +58,6 @@
 
 	leds {
 		compatible = "gpio-leds";
-		pinctrl-0 = <&leds_pins>;
-		pinctrl-names = "default";
 
 		led_system_green: led-system-green {
 			gpios = <&tlmm 1 GPIO_ACTIVE_HIGH>;
@@ -195,15 +193,6 @@
 			function = "gpio";
 			drive-strength = <8>;
 			bias-pull-up;
-		};
-	};
-
-	leds_pins: leds-state {
-		mux {
-			pins = "gpio1", "gpio3", "gpio4", "gpio6", "gpio7", "gpio8", "gpio11", "gpio12", "gpio13", "gpio14", "gpio15", "gpio42", "gpio51", "gpio52", "gpio54", "gpio56";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-down;
 		};
 	};
 };
@@ -345,9 +334,9 @@
 	};
 
 	ethernet-phy-package@16 {
+		compatible = "qcom,qca8075-package";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		compatible = "qcom,qca8075-package";
 		reg = <16>;
 
 		qcom,package-mode = "qsgmii";
@@ -478,7 +467,7 @@
 
 &wifi {
 	status = "okay";
-
+	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "QNAP-301w";
 };
 

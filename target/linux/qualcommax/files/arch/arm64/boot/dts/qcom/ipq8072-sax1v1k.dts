@@ -95,9 +95,9 @@
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		compatible = "qcom,qca8075-package";
 		reg = <0>;
 
 		qcom,package-mode = "qsgmii";
@@ -197,8 +197,9 @@
 };
 
 &wifi {
-	qcom,ath11k-calibration-variant = "Spectrum-SAX1V1K";
 	status = "okay";
+	qcom,ath11k-fw-memory-mode = <1>;
+	qcom,ath11k-calibration-variant = "Spectrum-SAX1V1K";
 };
 
 &edma {

@@ -342,9 +342,9 @@
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	ethernet-phy-package@0 {
+		compatible = "qcom,qca8075-package";
 		#address-cells = <1>;
 		#size-cells = <0>;
-		compatible = "qcom,qca8075-package";
 		reg = <0>;
 
 		qcom,package-mode = "qsgmii";
@@ -456,7 +456,7 @@
 &pcie0 {
 	status = "okay";
 
-	perst-gpio = <&tlmm 61 GPIO_ACTIVE_LOW>;
+	perst-gpios = <&tlmm 61 GPIO_ACTIVE_LOW>;
 
 	bridge@0,0 {
 		reg = <0x00000000 0 0 0 0>;
@@ -471,6 +471,7 @@
 			compatible = "pci17cb,1104";
 			reg = <0x00010000 0 0 0 0>;
 
+			qcom,ath11k-fw-memory-mode = <1>;
 			qcom,ath11k-calibration-variant = "Linksys-MX8500";
 		};
 	};
@@ -478,7 +479,7 @@
 
 &wifi {
 	status = "okay";
-
+	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "Linksys-MX8500";
 };
 
