@@ -86,3 +86,14 @@ platform_do_upgrade() {
 		;;
 	esac
 }
+
+platform_copy_config() {
+	case "$(board_name)" in
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02|\
+	jdcloud,re-cs-07|\
+	redmi,ax5-jdcloud)
+		emmc_copy_config
+		;;
+	esac
+}
