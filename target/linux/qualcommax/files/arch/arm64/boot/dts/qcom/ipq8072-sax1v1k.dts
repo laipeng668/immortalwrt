@@ -17,16 +17,18 @@
 	compatible = "spectrum,sax1v1k", "qcom,ipq8074";
 
 	aliases {
+		serial0 = &blsp1_uart5;
+
 		led-boot = &led_system_red;
 		led-failsafe = &led_system_red;
 		led-running = &led_system_blue;
 		led-upgrade = &led_system_red;
-		serial0 = &blsp1_uart5;
-		/* Aliases as required by u-boot to patch MAC addresses */
+
 		ethernet0 = &dp6_syn;
 		ethernet1 = &dp4;
 		ethernet2 = &dp3;
 		ethernet3 = &dp2;
+
 		label-mac-device = &dp6_syn;
 	};
 
@@ -86,10 +88,11 @@
 };
 
 &mdio {
+	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
-	status = "okay";
 
 	ethernet-phy-package@0 {
 		#address-cells = <1>;
@@ -118,8 +121,8 @@
 	qca8081: ethernet-phy@28 {
 		compatible = "ethernet-phy-id004d.d101";
 		reg = <28>;
-		reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
 		reset-deassert-us = <10000>;
+		reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
 	};
 };
 

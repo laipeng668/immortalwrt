@@ -9,7 +9,6 @@
 	compatible = "redmi,ax6-stock", "qcom,ipq8074";
 
 	aliases {
-		/* Aliases as required by u-boot to patch MAC addresses */
 		ethernet1 = &dp2;
 		ethernet2 = &dp3;
 		ethernet3 = &dp4;

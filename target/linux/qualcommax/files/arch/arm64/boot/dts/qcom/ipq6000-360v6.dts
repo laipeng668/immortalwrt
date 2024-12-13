@@ -18,6 +18,7 @@
 
 	aliases {
 		serial0 = &blsp1_uart3;
+
 		led-boot = &led_status_orange;
 		led-failsafe = &led_status_red;
 		led-running = &led_status_green;
@@ -135,6 +136,7 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;

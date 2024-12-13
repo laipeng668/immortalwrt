@@ -18,13 +18,15 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
-		ethernet0 = &dp6;
-		label-mac-device = &dp6;
 
 		led-boot = &led_system_blue;
 		led-failsafe = &led_system_red;
 		led-running = &led_system_green;
 		led-upgrade = &led_system_blue;
+
+		ethernet0 = &dp6;
+
+		label-mac-device = &dp6;
 	};
 
 	chosen {
@@ -154,10 +156,12 @@
 
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
-	reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	qca8081_28: ethernet-phy@28 {
 		reg = <28>;
+		reset-deassert-us = <10000>;
+		reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
 	};
 };
 

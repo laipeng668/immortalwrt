@@ -18,6 +18,7 @@
 	aliases {
 		serial0 = &blsp1_uart3;
 		serial1 = &blsp1_uart6;
+
 		led-boot = &led_status_blue;
 		led-failsafe = &led_status_red;
 		led-running = &led_status_green;
@@ -187,14 +188,17 @@
 			port_id = <1>;
 			phy_address = <24>;
 		};
+
 		port@2 {
 			port_id = <2>;
 			phy_address = <25>;
 		};
+
 		port@3 {
 			port_id = <3>;
 			phy_address = <26>;
 		};
+
 		port@4 {
 			port_id = <4>;
 			phy_address = <27>;

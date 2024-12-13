@@ -17,17 +17,20 @@
 	compatible = "yuncore,fap650", "qcom,ipq6018";
 
 	aliases {
+		serial0 = &blsp1_uart3;
+
+		led-boot = &led_system;
+		led-failsafe = &led_system;
+		led-running = &led_system;
+		led-upgrade = &led_system;
+
 		ethernet0 = &dp5;
 		ethernet1 = &dp4;
 		ethernet2 = &dp3;
 		ethernet3 = &dp2;
 		ethernet4 = &dp1;
+
 		label-mac-device = &dp5;
-		serial0 = &blsp1_uart3;
-		led-boot = &led_system;
-		led-failsafe = &led_system;
-		led-running = &led_system;
-		led-upgrade = &led_system;
 	};
 
 	chosen {
@@ -94,11 +97,10 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
-	reset-delay-us = <10000>;
-	reset-post-delay-us = <50000>;
 
 	ethernet-phy-package@0 {
 		#address-cells = <1>;

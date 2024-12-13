@@ -13,13 +13,12 @@
 / {
 	aliases {
 		serial0 = &blsp1_uart3;
+
 		led-boot = &led_yellow;
 		led-failsafe = &led_blue;
 		led-running = &led_blue;
 		led-upgrade = &led_yellow;
 
-		/* Aliases as required by u-boot to patch MAC addresses */
-		//ethernet0 = &dp1;
 		ethernet1 = &dp2;
 		ethernet2 = &dp3;
 		ethernet3 = &dp4;
@@ -170,14 +169,17 @@
 			port_id = <2>;
 			phy_address = <1>;
 		};
+
 		port@3 {
 			port_id = <3>;
 			phy_address = <2>;
 		};
+
 		port@4 {
 			port_id = <4>;
 			phy_address = <3>;
 		};
+
 		port@5 {
 			port_id = <5>;
 			phy_address = <4>;
