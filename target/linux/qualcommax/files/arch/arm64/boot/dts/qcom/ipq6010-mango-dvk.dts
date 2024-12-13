@@ -231,11 +231,10 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
-	reset-delay-us = <10000>;
-	reset-post-delay-us = <50000>;
 
 	ethernet-phy-package@0 {
 		#address-cells = <1>;
@@ -259,9 +258,8 @@
 	qca8081: ethernet-phy@24 {
 		compatible = "ethernet-phy-id004d.d101";
 		reg = <24>;
+		reset-deassert-us = <10000>;
 		reset-gpios = <&tlmm 77 GPIO_ACTIVE_LOW>;
-		reset-assert-us = <10000>;
-		reset-deassert-us = <50000>;
 	};
 };
 
@@ -288,10 +286,12 @@
 			port_id = <3>;
 			phy_address = <4>;
 		};
+
 		port@4 {
 			port_id = <4>;
 			phy_address = <3>;
 		};
+
 		port@5 {
 			port_id = <5>;
 			phy_address = <24>;

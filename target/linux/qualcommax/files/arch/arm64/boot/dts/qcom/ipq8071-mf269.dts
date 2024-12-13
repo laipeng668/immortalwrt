@@ -18,10 +18,12 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
+
 		led-boot = &led_power;
 		led-failsafe = &led_power;
 		led-running = &led_power;
 		led-upgrade = &led_power;
+
 		label-mac-device = &dp6_syn;
 	};
 
@@ -363,6 +365,7 @@
 
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	qca8081_24: ethernet-phy@24 {
 		compatible = "ethernet-phy-id004d.d101";
@@ -393,6 +396,7 @@
 			phy_address = <24>;
 			port_mac_sel = "QGMAC_PORT";
 		};
+
 		port@6 {
 			port_id = <6>;
 			phy_address = <28>;

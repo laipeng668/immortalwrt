@@ -19,13 +19,15 @@
 	aliases {
 		serial0 = &blsp1_uart5;
 		serial1 = &blsp1_uart3;
+
 		led-boot = &led_system;
 		led-failsafe = &led_system;
 		led-running = &led_system;
 		led-upgrade = &led_system;
-		/* Aliases as required by u-boot to patch MAC addresses */
+
 		ethernet0 = &dp5_syn;
 		ethernet1 = &dp6_syn;
+
 		label-mac-device = &dp5_syn;
 	};
 
@@ -272,24 +274,13 @@
 
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	qca8081_24: ethernet-phy@24 {
 		compatible = "ethernet-phy-id004d.d101";
 		reg = <24>;
 		reset-deassert-us = <10000>;
 		reset-gpios = <&tlmm 33 GPIO_ACTIVE_LOW>;
-
-		leds {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			led@0 {
-				reg = <0>;
-				color = <LED_COLOR_ID_GREEN>;
-				function = LED_FUNCTION_WAN;
-				default-state = "keep";
-			};
-		};
 	};
 
 	qca8081_28: ethernet-phy@28 {
@@ -297,18 +288,6 @@
 		reg = <28>;
 		reset-deassert-us = <10000>;
 		reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
-
-		leds {
-			#address-cells = <1>;
-			#size-cells = <0>;
-
-			led@0 {
-				reg = <0>;
-				color = <LED_COLOR_ID_GREEN>;
-				function = LED_FUNCTION_LAN;
-				default-state = "keep";
-			};
-		};
 	};
 };
 
@@ -326,6 +305,7 @@
 			phy_address = <24>;
 			port_mac_sel = "QGMAC_PORT";
 		};
+
 		port@6 {
 			port_id = <6>;
 			phy_address = <28>;

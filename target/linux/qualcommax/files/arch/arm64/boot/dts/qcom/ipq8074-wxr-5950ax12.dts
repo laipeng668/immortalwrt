@@ -18,10 +18,12 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
+
 		led-boot = &led_power_white;
 		led-failsafe = &led_power_red;
 		led-running = &led_power_white;
 		led-upgrade = &led_power_white;
+
 		label-mac-device = &dp5_syn;
 	};
 
@@ -204,8 +206,7 @@
 	 * Multiple entries in reset-gpios of mdio may not be supported, but
 	 * leave the following as-is to show that the those reset pin exists.
 	 */
-	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>,
-		      <&tlmm 63 GPIO_ACTIVE_LOW>;
+	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>, <&tlmm 63 GPIO_ACTIVE_LOW>;
 
 	aqr113c_1: ethernet-phy@0 {
 		compatible = "ethernet-phy-ieee802.3-c45";

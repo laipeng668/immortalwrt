@@ -19,6 +19,7 @@
 	aliases {
 		serial0 = &blsp1_uart5;
 		serial1 = &blsp1_uart3;
+
 		led-boot = &led_system_blue;
 		led-running = &led_system_blue;
 		led-failsafe = &led_system_red;

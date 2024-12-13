@@ -18,20 +18,19 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
-		/*
-		 * Aliases as required by u-boot
-		 * to patch MAC addresses
-		 */
+
 		led-boot = &led_system_red;
 		led-failsafe = &led_system_red;
 		led-running = &led_pwr_green;
 		led-upgrade = &led_system_red;
+
 		ethernet0 = &dp1;
 		ethernet1 = &dp2;
 		ethernet2 = &dp3;
 		ethernet3 = &dp4;
 		ethernet4 = &dp5;
 		ethernet5 = &dp6_syn;
+
 		label-mac-device = &dp1;
 	};
 
@@ -402,24 +401,29 @@
 			port_id = <1>;
 			phy_address = <16>;
 		};
+
 		port@1 {
 			port_id = <2>;
 			phy_address = <17>;
 		};
+
 		port@2 {
 			port_id = <3>;
 			phy_address = <18>;
 		};
+
 		port@3 {
 			port_id = <4>;
 			phy_address = <19>;
 		};
+
 		port@4 {
 			port_id = <5>;
 			phy_address = <8>;
 			compatible = "ethernet-phy-ieee802.3-c45";
 			ethernet-phy-ieee802.3-c45;
 		};
+
 		port@5 {
 			port_id = <6>;
 			phy_address = <0>;
