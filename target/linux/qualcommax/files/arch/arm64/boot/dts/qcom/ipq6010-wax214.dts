@@ -17,12 +17,15 @@
 
 	aliases {
 		serial0 = &blsp1_uart3;
-		ethernet0 = &dp3;
-		label-mac-device = &dp3;
+
 		led-boot = &pwr;
 		led-failsafe = &pwr;
 		led-running = &pwr;
 		led-upgrade = &pwr;
+
+		ethernet0 = &dp3;
+
+		label-mac-device = &dp3;
 	};
 
 	chosen {
@@ -106,11 +109,10 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
-	reset-delay-us = <10000>;
-	reset-post-delay-us = <50000>;
 
 	ethernet-phy-package@0 {
 		#address-cells = <1>;

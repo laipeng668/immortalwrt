@@ -13,6 +13,7 @@
 / {
 	aliases {
 		serial0 = &blsp1_uart3;
+
 		led-boot = &led_system_white;
 		led-failsafe = &led_system_white;
 		led-running = &led_system_white;
@@ -173,6 +174,7 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 74 GPIO_ACTIVE_LOW>;
@@ -205,10 +207,12 @@
 			port_id = <1>;
 			phy_address = <0>;
 		};
+
 		port@2 {
 			port_id = <2>;
 			phy_address = <1>;
 		};
+
 		port@3 {
 			port_id = <3>;
 			phy_address = <2>;

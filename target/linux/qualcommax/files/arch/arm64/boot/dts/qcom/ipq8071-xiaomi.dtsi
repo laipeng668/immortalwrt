@@ -13,10 +13,12 @@
 / {
 	aliases {
 		serial0 = &blsp1_uart5;
+
 		led-boot = &led_system_yellow;
 		led-failsafe = &led_system_yellow;
 		led-running = &led_system_blue;
 		led-upgrade = &led_system_yellow;
+
 		label-mac-device = &dp2;
 	};
 
@@ -236,14 +238,17 @@
 			port_id = <2>;
 			phy_address = <1>;
 		};
+
 		port@3 {
 			port_id = <3>;
 			phy_address = <2>;
 		};
+
 		port@4 {
 			port_id = <4>;
 			phy_address = <3>;
 		};
+
 		port@5 {
 			port_id = <5>;
 			phy_address = <4>;

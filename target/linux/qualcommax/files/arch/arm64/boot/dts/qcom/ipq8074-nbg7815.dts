@@ -19,8 +19,9 @@
 	aliases {
 		serial0 = &blsp1_uart5;
 		serial1 = &blsp1_uart3;
-		/* Alias as required by u-boot to patch MAC addresses */
+
 		ethernet0 = &dp1;
+
 		label-mac-device = &dp1;
 	};
 
@@ -238,6 +239,7 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
@@ -280,7 +282,6 @@
 		compatible = "ethernet-phy-ieee802.3-c45";
 		reg = <8>;
 		reset-gpios = <&tlmm 63 GPIO_ACTIVE_LOW>;
-
 		nvmem-cells = <&aqr_fw>;
 		nvmem-cell-names = "firmware";
 	};
