@@ -17,18 +17,22 @@
 	compatible = "asus,rt-ax89x", "qcom,ipq8074";
 
 	aliases {
-		serial0 = &blsp1_uart5;
 		mdio-gpio0 = &mdio1;
-		ethernet0 = &dp1;
-		ethernet1 = &dp2;
-		ethernet2 = &dp3;
-		ethernet3 = &dp4;
-		ethernet4 = &dp5_syn;
-		ethernet5 = &dp6_syn;
+
+		serial0 = &blsp1_uart5;
+
 		led-boot = &led_pwr;
 		led-failsafe = &led_pwr;
 		led-running = &led_pwr;
 		led-upgrade = &led_pwr;
+
+		ethernet0 = &dp1;
+		ethernet1 = &dp2;
+		ethernet2 = &dp3;
+		ethernet3 = &dp4;
+
+		ethernet4 = &dp5_syn;
+		ethernet5 = &dp6_syn;
 	};
 
 	chosen {
@@ -127,8 +131,7 @@
 		compatible = "gpio-fan";
 		pinctrl-0 = <&fan_pins>;
 		pinctrl-names = "default";
-		gpios = <&tlmm 64 GPIO_ACTIVE_HIGH
-			 &tlmm 66 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 64 GPIO_ACTIVE_HIGH>, <&tlmm 66 GPIO_ACTIVE_HIGH>;
 		/*
 		 * Not supported upstream, but good to document for
 		 * future uses.
@@ -584,8 +587,7 @@
 		compatible = "virtual,mdio-gpio";
 		pinctrl-0 = <&mdio_gpio_pins>;
 		pinctrl-names = "default";
-		gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>,
-			<&tlmm 54 GPIO_ACTIVE_HIGH>;
+		gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>, <&tlmm 54 GPIO_ACTIVE_HIGH>;
 		#address-cells = <1>;
 		#size-cells = <0>;
 
@@ -620,14 +622,17 @@
 			port_id = <1>;
 			phy_address = <0x8>;
 		};
+
 		port@1 {
 			port_id = <2>;
 			phy_address = <0x9>;
 		};
+
 		port@2 {
 			port_id = <3>;
 			phy_address = <0xa>;
 		};
+
 		port@3 {
 			port_id = <4>;
 			phy_address = <0xb>;

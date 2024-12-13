@@ -16,16 +16,19 @@
 	compatible = "cambiumnetworks,xe3-4", "qcom,ipq6018";
 
 	aliases {
-		serial0 = &blsp1_uart3;
 		sdhc2 = &sdhc_1;
-		ethernet0 = &dp5;
-		ethernet1 = &dp4;
-		label-mac-device = &dp5;
+
+		serial0 = &blsp1_uart3;
 
 		led-boot = &led_status_amber;
 		led-failsafe = &led_status_amber;
 		led-running = &led_status_white;
 		led-upgrade = &led_status_amber;
+
+		ethernet0 = &dp5;
+		ethernet1 = &dp4;
+
+		label-mac-device = &dp5;
 	};
 
 	chosen {
@@ -201,11 +204,10 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;
-	reset-delay-us = <10000>;
-	reset-post-delay-us = <50000>;
 
 	ethernet-phy-package@0 {
 		#address-cells = <1>;
@@ -224,9 +226,8 @@
 	qca8081: ethernet-phy@24 {
 		compatible = "ethernet-phy-id004d.d101";
 		reg = <24>;
+		reset-deassert-us = <10000>;
 		reset-gpios = <&tlmm 77 GPIO_ACTIVE_LOW>;
-		reset-assert-us = <10000>;
-		reset-deassert-us = <50000>;
 	};
 };
 

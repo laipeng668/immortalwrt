@@ -18,12 +18,14 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
+
 		led-boot = &led_system_red;
 		led-failsafe = &led_system_red;
 		led-running = &led_system_green;
 		led-upgrade = &led_system_red;
-		/* Aliases as required by u-boot to patch MAC addresses */
+
 		ethernet0 = &dp5;
+
 		label-mac-device = &dp5;
 	};
 
@@ -242,7 +244,6 @@
 
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
-
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
 
 	ethernet-phy-package@0 {

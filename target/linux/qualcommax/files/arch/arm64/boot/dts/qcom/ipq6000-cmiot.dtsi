@@ -14,7 +14,6 @@
 	aliases {
 		serial0 = &blsp1_uart3;
 
-		/* Aliases as required by u-boot to patch MAC addresses */
 		ethernet0 = &dp1;
 		ethernet1 = &dp2;
 		ethernet3 = &dp4;
@@ -104,6 +103,7 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 75 GPIO_ACTIVE_LOW>;

@@ -18,15 +18,17 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
+
 		led-boot = &led_power_blue;
 		led-failsafe = &led_power_red;
 		led-running = &led_system_green;
 		led-upgrade = &led_system_blue;
-		/* Aliases as required by u-boot to patch MAC addresses */
+
 		ethernet0 = &dp6;
 		ethernet1 = &dp2;
 		ethernet2 = &dp3;
 		ethernet3 = &dp4;
+
 		label-mac-device = &dp6;
 	};
 
@@ -314,6 +316,7 @@
 
 &mdio {
 	status = "okay";
+
 	pinctrl-0 = <&mdio_pins>;
 	pinctrl-names = "default";
 	reset-gpios = <&tlmm 37 GPIO_ACTIVE_LOW>;
@@ -343,6 +346,7 @@
 	qca8081: ethernet-phy@28 {
 		compatible = "ethernet-phy-ieee802.3-c22";
 		reg = <28>;
+		reset-deassert-us = <10000>;
 		reset-gpios = <&tlmm 44 GPIO_ACTIVE_LOW>;
 	};
 };
@@ -361,14 +365,17 @@
 			port_id = <2>;
 			phy_address = <1>;
 		};
+
 		port@3 {
 			port_id = <3>;
 			phy_address = <2>;
 		};
+
 		port@4 {
 			port_id = <4>;
 			phy_address = <3>;
 		};
+
 		port@6 {
 			port_id = <6>;
 			phy_address = <28>;

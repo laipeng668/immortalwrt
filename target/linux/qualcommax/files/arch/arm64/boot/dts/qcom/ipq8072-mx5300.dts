@@ -18,19 +18,17 @@
 
 	aliases {
 		serial0 = &blsp1_uart5;
-		/*
-		 * Aliases as required by u-boot
-		 * to patch MAC addresses
-		 */
+
+		led-boot = &led_system_blue;
+		led-running = &led_system_blue;
+		led-failsafe = &led_system_red;
+		led-upgrade = &led_system_green;
+
 		ethernet0 = &dp1;
 		ethernet1 = &dp2;
 		ethernet2 = &dp3;
 		ethernet3 = &dp4;
 		ethernet4 = &dp5;
-		led-boot = &led_system_blue;
-		led-running = &led_system_blue;
-		led-failsafe = &led_system_red;
-		led-upgrade = &led_system_green;
 	};
 
 	chosen {
@@ -431,18 +429,22 @@
 			port_id = <1>;
 			phy_address = <0>;
 		};
+
 		port@2 {
 			port_id = <2>;
 			phy_address = <1>;
 		};
+
 		port@3 {
 			port_id = <3>;
 			phy_address = <2>;
 		};
+
 		port@4 {
 			port_id = <4>;
 			phy_address = <3>;
 		};
+
 		port@5 {
 			port_id = <5>;
 			phy_address = <4>;
