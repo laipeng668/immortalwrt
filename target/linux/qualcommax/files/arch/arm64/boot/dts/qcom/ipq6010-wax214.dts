@@ -76,12 +76,6 @@
 	};
 };
 
-&blsp1_uart3 {
-	pinctrl-0 = <&serial_3_pins>;
-	pinctrl-names = "default";
-	status = "okay";
-};
-
 &tlmm {
 	mdio_pins: mdio-pins {
 		mdc {

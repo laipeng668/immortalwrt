@@ -111,9 +111,10 @@
 };
 
 &blsp1_i2c3 {
+	status = "okay";
+
 	pinctrl-0 = <&i2c_pins>;
 	pinctrl-names = "default";
-	status = "okay";
 
 	led-controller@62 {
 		compatible = "nxp,pca9633";
@@ -143,12 +144,6 @@
 
 &blsp1_uart2 {
 	pinctrl-0 = <&hsuart_pins>;
-	pinctrl-names = "default";
-	status = "okay";
-};
-
-&blsp1_uart3 {
-	pinctrl-0 = <&serial_3_pins>;
 	pinctrl-names = "default";
 	status = "okay";
 };

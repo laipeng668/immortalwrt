@@ -38,8 +38,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		wps-button {
 			label = "wps";
@@ -72,15 +70,6 @@
 		};
 	};
 
-	button_pins: button-state {
-		mux {
-			pins = "gpio42", "gpio44";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
-
 	i2c_3_pins: i2c-3-state {
 		mux {
 			pins = "gpio46", "gpio47";
@@ -92,10 +81,11 @@
 };
 
 &blsp1_spi1 {
+	status = "okay";
+
 	pinctrl-0 = <&spi_0_pins>;
 	pinctrl-names = "default";
 	cs-gpios = <0>;
-	status = "okay";
 
 	flash@0 {
 		#address-cells = <1>;
@@ -274,7 +264,7 @@
 	qcom,ath11k-calibration-variant = "prpl-Haze";
 };
 
-&blsp1_i2c3{
+&blsp1_i2c3 {
 	pinctrl-0 = <&i2c_3_pins>;
 	pinctrl-names = "default";
 	status = "okay";
