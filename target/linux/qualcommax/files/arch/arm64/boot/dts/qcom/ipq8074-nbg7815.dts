@@ -59,10 +59,11 @@
 };
 
 &blsp1_spi1 {
+	status = "okay";
+
 	pinctrl-0 = <&spi_0_pins>;
 	pinctrl-names = "default";
 	cs-gpios = <0>;
-	status = "okay";
 
 	/*
 	 * Bootloader will find the NAND DT node by the compatible and
@@ -384,9 +385,9 @@
 };
 
 &blsp1_i2c2 {
+	status = "okay";
 	pinctrl-0 = <&i2c_0_pins>;
 	pinctrl-names = "default";
-	status = "okay";
 
 	tmp103@70 {
 		compatible = "ti,tmp103";

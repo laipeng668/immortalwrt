@@ -139,11 +139,12 @@
 };
 
 &switch {
+	status = "okay";
+
 	switch_lan_bmp = <(ESS_PORT2 | ESS_PORT3 | ESS_PORT4)>;
 	switch_wan_bmp = <ESS_PORT6>;
 	switch_mac_mode = <MAC_MODE_QSGMII>;
 	switch_mac_mode2 = <MAC_MODE_SGMII_PLUS>;
-	status = "okay";
 
 	qcom,port_phyinfo {
 		port@2 {

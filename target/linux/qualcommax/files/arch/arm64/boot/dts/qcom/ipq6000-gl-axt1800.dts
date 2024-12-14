@@ -99,13 +99,14 @@
 };
 
 &sdhc_1 {
+	status = "okay";
+
 	pinctrl-0 = <&sd_pins>;
 	pinctrl-names = "default";
 	cd-gpios = <&tlmm 62 1>;
 	sd-ldo-gpios = <&tlmm 66 1>;
 	vqmmc-supply = <&V18>;
 	vmmc-supply = <&V30>;
-	status = "okay";
 };
 
 &wifi {

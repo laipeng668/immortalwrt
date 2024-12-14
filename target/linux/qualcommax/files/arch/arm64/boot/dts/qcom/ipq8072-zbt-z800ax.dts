@@ -50,8 +50,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		reset {
 			label = "reset";
@@ -98,15 +96,6 @@
 };
 
 &tlmm {
-	button_pins: button-pins {
-		mux {
-			pins = "gpio34", "gpio46";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
-
 	mdio_pins: mdio-pins {
 		mdc {
 			pins = "gpio68";
@@ -125,10 +114,11 @@
 };
 
 &blsp1_spi1 {
+	status = "okay";
+
 	pinctrl-0 = <&spi_0_pins>;
 	pinctrl-names = "default";
 	cs-select = <0>;
-	status = "okay";
 
 	flash@0 {
 		compatible = "jedec,spi-nor";

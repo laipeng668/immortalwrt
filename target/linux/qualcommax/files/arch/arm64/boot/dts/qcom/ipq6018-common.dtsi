@@ -20,6 +20,12 @@
 	status = "disabled";
 };
 
+&blsp1_uart3 {
+	status = "okay";
+	pinctrl-0 = <&serial_3_pins>;
+	pinctrl-names = "default";
+};
+
 &crypto {
 	status = "okay";
 };

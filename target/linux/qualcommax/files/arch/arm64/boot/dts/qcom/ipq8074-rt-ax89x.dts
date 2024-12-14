@@ -43,8 +43,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		wifi-button {
 			label = "wifi";
@@ -261,15 +259,6 @@
 };
 
 &tlmm {
-	button_pins: button-state {
-		mux {
-			pins = "gpio25", "gpio26", "gpio34", "gpio61";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
-
 	i2c_pins: i2c-pins {
 		mux {
 			pins = "gpio42", "gpio43";
@@ -418,10 +407,6 @@
 			};
 		};
 	};
-};
-
-&blsp1_i2c2 {
-	status = "okay";
 };
 
 &mdio {
