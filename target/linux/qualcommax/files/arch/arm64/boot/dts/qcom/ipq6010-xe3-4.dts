@@ -78,12 +78,6 @@
 	};
 };
 
-&blsp1_uart3 {
-	pinctrl-0 = <&serial_3_pins>;
-	pinctrl-names = "default";
-	status = "okay";
-};
-
 &blsp1_i2c3 {
 	pinctrl-0 = <&i2c_1_pins>;
 	pinctrl-names = "default";
@@ -161,10 +155,10 @@
 };
 
 &sdhc_1 {
-	pinctrl-0 = <&sd_pins>;
-	pinctrl-names = "default";
 	status = "okay";
 
+	pinctrl-0 = <&sd_pins>;
+	pinctrl-names = "default";
 	cd-gpios = <&tlmm 62 GPIO_ACTIVE_LOW>;
 	vqmmc-supply = <&reg_sd_vmmc>;
 	bus-width = <4>;

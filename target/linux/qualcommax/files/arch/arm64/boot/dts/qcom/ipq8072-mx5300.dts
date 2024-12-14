@@ -38,8 +38,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		reset-button {
 			label = "reset";
@@ -56,13 +54,6 @@
 };
 
 &tlmm {
-	button_pins: button-state {
-		pins = "gpio54", "gpio67";
-		function = "gpio";
-		drive-strength = <8>;
-		bias-pull-up;
-	};
-
 	mdio_pins: mdio-state {
 		mdc-pins {
 			pins = "gpio68";

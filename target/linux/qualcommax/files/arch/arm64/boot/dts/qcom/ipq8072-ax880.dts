@@ -38,8 +38,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		reset {
 			label = "reset";
@@ -82,15 +80,6 @@
 		mdio {
 			pins = "gpio69";
 			function = "mdio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
-
-	button_pins: button-pins {
-		mux {
-			pins = "gpio57";
-			function = "gpio";
 			drive-strength = <8>;
 			bias-pull-up;
 		};

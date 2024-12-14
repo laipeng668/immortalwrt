@@ -31,8 +31,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		reset {
 			label = "reset";
@@ -66,15 +64,6 @@
 
 &tlmm {
 	gpio-reserved-ranges = <20 1>;
-
-	button_pins: button-pins {
-		mux {
-			pins = "gpio9", "gpio18";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
 
 	mdio_pins: mdio-pins {
 		mdc {
@@ -126,17 +115,12 @@
 	};
 };
 
-&blsp1_uart3 {
-	pinctrl-0 = <&serial_3_pins>;
-	pinctrl-names = "default";
-	status = "okay";
-};
-
 &blsp1_spi1 {
+	status = "okay";
+
 	pinctrl-0 = <&spi_1_pins>;
 	pinctrl-names = "default";
 	cs-select = <0>;
-	status = "okay";
 
 	m25p80@0 {
 		#address-cells = <1>;
@@ -217,20 +201,20 @@
 };
 
 &dp1{
-	phy-handle = <&qca8075_0>;
 	status = "okay";
+	phy-handle = <&qca8075_0>;
 	label = "wan";
 };
 
 &dp2{
-	phy-handle = <&qca8075_1>;
 	status = "okay";
+	phy-handle = <&qca8075_1>;
 	label = "lan1";
 };
 
 &dp3{
-	phy-handle = <&qca8075_2>;
 	status = "okay";
+	phy-handle = <&qca8075_2>;
 	label = "lan2";
 };
 

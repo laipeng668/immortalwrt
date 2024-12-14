@@ -45,14 +45,14 @@
 };
 
 &dp4 {
-	phy-handle = <&qca8075_3>;
 	status = "okay";
+	phy-handle = <&qca8075_3>;
 	label = "lan3";
 };
 
 &dp5 {
-	phy-handle = <&qca8075_4>;
 	status = "okay";
+	phy-handle = <&qca8075_4>;
 	label = "lan4";
 };
 

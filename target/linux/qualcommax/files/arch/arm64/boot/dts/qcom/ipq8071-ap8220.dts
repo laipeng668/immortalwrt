@@ -34,10 +34,11 @@
 };
 
 &blsp1_spi1 {
+	status = "okay";
+
 	pinctrl-0 = <&spi_0_pins>;
 	pinctrl-names = "default";
 	cs-select = <0>;
-	status = "okay";
 
 	flash@0 {
 		compatible = "jedec,spi-nor";
