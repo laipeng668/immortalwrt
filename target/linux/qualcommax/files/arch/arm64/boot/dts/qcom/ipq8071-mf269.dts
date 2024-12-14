@@ -34,8 +34,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		wps {
 			label = "wps";
@@ -62,15 +60,6 @@
 };
 
 &tlmm {
-	button_pins: button-pins {
-		mux {
-			pins = "gpio37", "gpio46";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
-
 	i2c_pins: i2c-pins {
 		mux {
 			pins = "gpio21", "gpio22";
@@ -108,10 +97,11 @@
 };
 
 &blsp1_spi1 {
+	status = "okay";
+
 	pinctrl-0 = <&spi_0_pins>;
 	pinctrl-names = "default";
 	cs-select = <0>;
-	status = "okay";
 
 	flash@0 {
 		compatible = "jedec,spi-nor";

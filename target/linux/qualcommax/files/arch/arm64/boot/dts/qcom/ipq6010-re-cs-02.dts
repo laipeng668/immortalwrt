@@ -37,8 +37,6 @@
 
 	keys {
 		compatible = "gpio-keys";
-		pinctrl-0 = <&button_pins>;
-		pinctrl-names = "default";
 
 		wps {
 			label = "wps";
@@ -82,15 +80,6 @@
 &tlmm {
 	gpio-reserved-ranges = <20 1>;
 
-	button_pins: button-pins {
-		mux {
-			pins = "gpio56", "gpio71", "gpio72";
-			function = "gpio";
-			drive-strength = <8>;
-			bias-pull-up;
-		};
-	};
-
 	btuart_pins: btuart-pins {
 		mux {
 			pins = "gpio48", "gpio49";
@@ -133,13 +122,6 @@
 			output-high;
 		};
 	};
-};
-
-&blsp1_uart3 {
-	status = "okay";
-
-	pinctrl-0 = <&serial_3_pins>;
-	pinctrl-names = "default";
 };
 
 &blsp1_uart6 {
