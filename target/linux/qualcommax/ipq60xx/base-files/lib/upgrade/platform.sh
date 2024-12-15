@@ -77,23 +77,12 @@ platform_do_upgrade() {
 	jdcloud,re-cs-02|\
 	jdcloud,re-cs-07|\
 	redmi,ax5-jdcloud)
-		CI_KERNPART="0:HLOS"
-		CI_ROOTPART="rootfs"
-		emmc_do_upgrade "$1"
+		kernelname="0:HLOS"
+		rootfsname="rootfs"
+		mmc_do_upgrade "$1"
 		;;
 	*)
 		default_do_upgrade "$1"
-		;;
-	esac
-}
-
-platform_copy_config() {
-	case "$(board_name)" in
-	jdcloud,re-ss-01|\
-	jdcloud,re-cs-02|\
-	jdcloud,re-cs-07|\
-	redmi,ax5-jdcloud)
-		emmc_copy_config
 		;;
 	esac
 }
