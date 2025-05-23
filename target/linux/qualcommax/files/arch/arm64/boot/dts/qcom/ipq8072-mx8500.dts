@@ -31,7 +31,7 @@
 		bootargs-append = " root=/dev/ubiblock0_0 rootfstype=squashfs ro";
 	};
 
-	gpio_export {
+	gpio-export {
 		compatible = "gpio-export";
 
 		bt_pwr {

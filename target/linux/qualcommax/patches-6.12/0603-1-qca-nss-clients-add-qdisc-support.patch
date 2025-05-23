@@ -336,7 +336,7 @@
  }
  
 +/* QCA NSS Qdisc Support - Start */
-+static bool tcf_destroy(struct tcf_proto *tp, bool force)
++bool tcf_destroy(struct tcf_proto *tp, bool force)
 +{
 +	tp->ops->destroy(tp, force, NULL);
 +	module_put(tp->ops->owner);

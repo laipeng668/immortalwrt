@@ -110,8 +110,6 @@
 	pinctrl-0 = <&i2c_0_pins>;
 	pinctrl-names = "default";
 
-	status = "okay";
-
 	tlc59208f@27 {
 		#address-cells = <1>;
 		#size-cells = <0>;
