@@ -104,6 +104,36 @@ EOF
 	fw_setenv --script /tmp/env_tmp
 }
 
+alfa_bootconfig_rootfs_rotate() {
+	local part="$1"
+	local offs="$2"
+
+	local mtdnum=$(find_mtd_index "$part")
+	[ -c "/dev/mtd${mtdnum}" ] || return 1
+
+	dd if=/dev/mtd${mtdnum} of=/tmp/mtd${mtdnum} bs=1k > /dev/null 2>&1
+
+	local active="$(dd if=/tmp/mtd${mtdnum} bs=1 skip=${offs} count=1 2>/dev/null)"
+	active=$(printf "%d\n" "\"$active")
+
+	if [ "$active" = "1" ]; then
+		printf '\x00' | dd of=/tmp/mtd${mtdnum} \
+			conv=notrunc bs=1 seek=${offs} > /dev/null 2>&1
+	else
+		printf '\x01' | dd of=/tmp/mtd${mtdnum} \
+			conv=notrunc bs=1 seek=${offs} > /dev/null 2>&1
+	fi
+
+	mtd -qq write /tmp/mtd${mtdnum} /dev/mtd${mtdnum} 2>/dev/null
+
+	local mtdnum_sec=$(find_mtd_index "${part}1")
+	[ -c "/dev/mtd${mtdnum_sec}" ] && \
+		mtd -qq write \
+			/tmp/mtd${mtdnum} /dev/mtd${mtdnum_sec} 2>/dev/null
+
+	return 0
+}
+
 platform_do_upgrade() {
 	case "$(board_name)" in
 	alfa-network,ap120c-ax)
@@ -158,6 +188,13 @@ platform_do_upgrade() {
 		fw_setenv owrt_bootcount 0
 		fw_setenv owrt_slotactive $((1 - active))
 		nand_do_upgrade "$1"
+		;;
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02|\
+	jdcloud,re-cs-07)
+		kernelname="0:HLOS"
+		rootfsname="rootfs"
+		mmc_do_upgrade "$1"
 		;;
 	*)
 		default_do_upgrade "$1"
