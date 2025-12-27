@@ -9,65 +9,34 @@ board=$(board_name)
 case "$FIRMWARE" in
 "ath11k/IPQ6018/hw1.0/cal-ahb-c000000.wifi.bin")
 	case "$board" in
-	8devices,mango-dvk)
-		caldata_extract "0:ART" 0x1000 0x20000
-		;;
+	8devices,mango-dvk|\
 	alfa-network,ap120c-ax)
 		caldata_extract "0:ART" 0x1000 0x20000
-		label_mac=$(mtd_get_mac_binary 0:ART 12)
-		ath11k_patch_mac $label_mac 1
-		ath11k_patch_mac $(macaddr_add $label_mac 1) 0
-		ath11k_set_macflag
 		;;
 	cambiumnetworks,xe3-4)
 		caldata_extract "0:ART" 0x1000 0x10000
 		;;
 	glinet,gl-ax1800|\
-	glinet,gl-axt1800)
-		caldata_extract "0:art" 0x1000 0x10000
-		label_mac=$(get_mac_label)
-		ath11k_patch_mac $(macaddr_add $label_mac 3) 0
-		ath11k_patch_mac $(macaddr_add $label_mac 2) 1
-		ath11k_set_macflag
-		;;
+	glinet,gl-axt1800|\
 	linksys,mr7350|\
-	linksys,mr7500)
-		caldata_extract "0:art" 0x1000 0x10000
-		addr=$(mtd_get_mac_ascii devinfo hw_mac_addr)
-		ath11k_patch_mac $(macaddr_add $addr 2) 0
-		ath11k_patch_mac $(macaddr_add $addr 1) 1
-		ath11k_set_macflag
-		ath11k_remove_regdomain
-		;;
-	netgear,wax214)
-		caldata_extract "0:art" 0x1000 0x10000
-		;;
+	linksys,mr7500|\
+	netgear,wax214|\
 	netgear,wax610|\
-	netgear,wax610y)
-		caldata_extract "0:art" 0x1000 0x10000
-		label_mac=$(get_mac_label)
-		ath11k_patch_mac $(macaddr_add $label_mac -30) 1
-		ath11k_patch_mac $(macaddr_add $label_mac 2) 0
-		ath11k_set_macflag
-		;;
+	netgear,wax610y|\
 	qihoo,360v6)
 		caldata_extract "0:art" 0x1000 0x10000
-		label_mac=$(mtd_get_mac_ascii factory lanMac)
-		ath11k_patch_mac $(macaddr_add $label_mac 3) 0
-		ath11k_patch_mac $(macaddr_add $label_mac 2) 1
-		ath11k_set_macflag
 		;;
 	tplink,eap610-outdoor|\
 	tplink,eap623od-hd-v1|\
 	tplink,eap625-outdoor-hd-v1)
 		caldata_from_file "/tmp/factory_data/radio" 0 0x10000
-		label_mac=$(get_mac_binary /tmp/factory_data/default-mac 0)
-		ath11k_patch_mac $label_mac 1
-		ath11k_patch_mac $(macaddr_add $label_mac 1) 0
-		ath11k_set_macflag
 		;;
 	yuncore,fap650)
 		caldata_extract "0:art" 0x1000 0x20000
+		;;
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02)
+		caldata_extract_mmc "0:ART" 0x1000 0x10000
 		;;
 	esac
 	;;
@@ -78,10 +47,9 @@ case "$FIRMWARE" in
 		;;
 	linksys,mr7500)
 		caldata_extract "0:art" 0x26800 0x20000
-		addr=$(mtd_get_mac_ascii devinfo hw_mac_addr)
-		ath11k_patch_mac $(macaddr_add $addr 3) 0
-		ath11k_set_macflag
-		ath11k_remove_regdomain
+		;;
+	jdcloud,re-cs-02)
+		caldata_extract_mmc "0:ART" 0x26800 0x20000
 		;;
 	esac
 	;;
