@@ -1202,7 +1202,6 @@ endef
 
 $(eval $(call KernelPackage,crypto-xts))
 
-
 define KernelPackage/crypto-xxhash
   TITLE:=xxHash non-cryptographic hash algorithm
   DEPENDS:=+kmod-crypto-hash +kmod-lib-xxhash
