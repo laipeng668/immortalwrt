@@ -21,6 +21,7 @@ ipq60xx_setup_interfaces()
 	cambiumnetworks,xe3-4)
 		ucidef_set_interface_lan "lan1 lan2" "dhcp"
 		;;
+	jdcloud,re-cs-02|\
 	glinet,gl-ax1800|\
 	linksys,mr7350|\
 	linksys,mr7500|\
@@ -30,6 +31,8 @@ ipq60xx_setup_interfaces()
 	netgear,wax214)
 		ucidef_set_interfaces_lan_wan "lan"
 		;;
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-07|\
 	qihoo,360v6)
 		ucidef_set_interfaces_lan_wan "lan1 lan2 lan3" "wan"
 		;;

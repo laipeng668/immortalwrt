@@ -23,7 +23,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
  		#size-cells = <2>;
  		ranges;
  
-+		nss@40000000 {
++		nss_region: memory@40000000 {
 +			no-map;
 +			reg = <0x0 0x40000000 0x0 0x01000000>;
 +		};
@@ -36,7 +36,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
  		bootloader@4a600000 {
  			reg = <0x0 0x4a600000 0x0 0x400000>;
  			no-map;
-@@ -108,6 +118,21 @@
+@@ -108,6 +118,29 @@
  			reg = <0x0 0x4ac00000 0x0 0x400000>;
  			no-map;
  		};
@@ -54,6 +54,14 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
 +		m3_dump_region: m3_dump@51000000 {
 +			no-map;
 +			reg = <0x0 0x51000000 0x0 0x100000>;
++		};
++
++		ramoops_region: ramoops@51100000 {
++			compatible = "ramoops";
++			reg = <0x0 0x51100000 0x0 0x100000>;
++			no-map;
++			record-size = <0x4000>;
++			console-size = <0x4000>;
 +		};
  	};
  
