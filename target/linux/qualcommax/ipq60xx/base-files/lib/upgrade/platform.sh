@@ -159,6 +159,13 @@ platform_do_upgrade() {
 		fw_setenv owrt_slotactive $((1 - active))
 		nand_do_upgrade "$1"
 		;;
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02|\
+	jdcloud,re-cs-07)
+		kernelname="0:HLOS"
+		rootfsname="rootfs"
+		mmc_do_upgrade "$1"
+		;;
 	*)
 		default_do_upgrade "$1"
 		;;
