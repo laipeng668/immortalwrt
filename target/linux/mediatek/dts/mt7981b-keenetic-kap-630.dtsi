@@ -1,19 +1,15 @@
 // SPDX-License-Identifier: GPL-2.0-only OR MIT
 
 /dts-v1/;
-
 #include "mt7981b.dtsi"
 
 / {
-	model = "Keenetic KN-3911";
-	compatible = "keenetic,kn-3911", "mediatek,mt7981";
-
 	aliases {
-		label-mac-device = &gmac1;
-		led-boot = &status_led;
-		led-failsafe = &status_led;
-		led-running = &status_led;
-		led-upgrade = &status_led;
+		label-mac-device = &gmac0;
+		led-boot = &status_led_green;
+		led-failsafe = &status_led_orange;
+		led-running = &status_led_green;
+		led-upgrade = &status_led_green;
 		serial0 = &uart0;
 	};
 
@@ -24,38 +20,26 @@
 	gpio-keys {
 		compatible = "gpio-keys";
 
-		button-fn {
-			label = "fn";
-			linux,code = <BTN_0>;
-			gpios = <&pio 0 GPIO_ACTIVE_LOW>;
-		};
-
 		button-reset {
 			label = "reset";
 			linux,code = <KEY_RESTART>;
 			gpios = <&pio 24 GPIO_ACTIVE_LOW>;
-		};
-
-		button-wps {
-			label = "wps";
-			linux,code = <KEY_WPS_BUTTON>;
-			gpios = <&pio 29 GPIO_ACTIVE_LOW>;
 		};
 	};
 
 	gpio-leds {
 		compatible = "gpio-leds";
 
-		status_led: led-0 {
+		status_led_green: led-0 {
 			color = <LED_COLOR_ID_GREEN>;
 			function = LED_FUNCTION_STATUS;
 			gpios = <&pio 11 GPIO_ACTIVE_HIGH>;
 		};
 
-		led-1 {
+		status_led_orange: led-1 {
 			color = <LED_COLOR_ID_ORANGE>;
-			function = LED_FUNCTION_WPS;
-			gpios = <&pio 12 GPIO_ACTIVE_LOW>;
+			function = LED_FUNCTION_STATUS;
+			gpios = <&pio 12 GPIO_ACTIVE_HIGH>;
 		};
 	};
 
@@ -94,23 +78,11 @@
 	pinctrl-names = "default";
 	pinctrl-0 = <&mdio_pins>;
 
-	mac@0 {
+	gmac0: mac@0 {
 		compatible = "mediatek,eth-mac";
 		reg = <0>;
 		phy-mode = "2500base-x";
 		phy-handle = <&phy10>;
-		label = "lan";
-
-		nvmem-cell-names = "mac-address";
-		nvmem-cells = <&macaddr_factory_4>;
-	};
-
-	gmac1: mac@1 {
-		compatible = "mediatek,eth-mac";
-		reg = <1>;
-		phy-mode = "2500base-x";
-		phy-handle = <&phy11>;
-		label = "wan";
 
 		nvmem-cell-names = "mac-address";
 		nvmem-cells = <&macaddr_factory_a>;
@@ -118,20 +90,12 @@
 };
 
 &mdio_bus {
+	/* Airoha EN8811H */
 	phy10: ethernet-phy@a {
 		reg = <0xa>;
 		interrupt-parent = <&pio>;
 		interrupts = <38 IRQ_TYPE_EDGE_FALLING>;
 		reset-gpios = <&pio 22 GPIO_ACTIVE_LOW>;
-		reset-assert-us = <10000>;
-		reset-deassert-us = <20000>;
-	};
-
-	phy11: ethernet-phy@b {
-		reg = <0xb>;
-		interrupt-parent = <&pio>;
-		interrupts = <23 IRQ_TYPE_EDGE_FALLING>;
-		reset-gpios = <&pio 27 GPIO_ACTIVE_LOW>;
 		reset-assert-us = <10000>;
 		reset-deassert-us = <20000>;
 	};
@@ -215,12 +179,6 @@
 						reg = <0x0 0x1000>;
 					};
 
-					/* lan mac */
-					macaddr_factory_4: macaddr@4 {
-						reg = <0x4 0x6>;
-					};
-
-					/* wan mac */
 					macaddr_factory_a: macaddr@a {
 						reg = <0xa 0x6>;
 					};
