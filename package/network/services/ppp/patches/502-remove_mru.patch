@@ -10,8 +10,6 @@ Signed-off-by: Mateusz Poliwczak <mpoliwczak34@gmail.com>
  pppd/plugins/pppoe/plugin.c | 5 -----
  1 file changed, 5 deletions(-)
 
-diff --git a/pppd/plugins/pppoe/plugin.c b/pppd/plugins/pppoe/plugin.c
-index b429a2fd..0f672166 100644
 --- a/pppd/plugins/pppoe/plugin.c
 +++ b/pppd/plugins/pppoe/plugin.c
 @@ -446,11 +446,6 @@ void pppoe_check_options(void)
