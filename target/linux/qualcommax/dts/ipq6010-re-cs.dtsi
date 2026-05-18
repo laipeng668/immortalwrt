@@ -2,7 +2,7 @@
 
 #include "ipq6018.dtsi"
 #include "ipq6018-ess.dtsi"
-
+#include "ipq6018-nss.dtsi"
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/leds/common.h>
@@ -135,5 +135,39 @@
 			compatible = "ethernet-phy-ieee802.3-c22";
 			reg = <27>;
 		};
+	};
+};
+
+&cpu_opp_table {
+	opp-864000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1056000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1200000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1320000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1440000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1512000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1608000000 {
+		opp-supported-hw = <0x1>;
+	};
+
+	opp-1800000000 {
+		opp-supported-hw = <0x1>;
 	};
 };
