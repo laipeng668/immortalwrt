@@ -409,8 +409,8 @@ define KernelPackage/ath11k/config
        config ATH11K_NSS_MESH_SUPPORT
                bool "Enable NSS WiFi Mesh offload"
                depends on ATH11K_NSS_SUPPORT
+               depends on NSS_FIRMWARE_VERSION_11_4
                select PACKAGE_MAC80211_MESH
-               select NSS_FIRMWARE_VERSION_11_4
                default n
 
        choice
