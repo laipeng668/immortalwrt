@@ -22,8 +22,6 @@ Signed-off-by: Qingfang Deng <dqfext@gmail.com>
  pppd/pppd-private.h | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/pppd/pppd-private.h b/pppd/pppd-private.h
-index 5f841824..29ea940c 100644
 --- a/pppd/pppd-private.h
 +++ b/pppd/pppd-private.h
 @@ -525,7 +525,7 @@ int parse_dotted_ip(char *, u_int32_t *)
