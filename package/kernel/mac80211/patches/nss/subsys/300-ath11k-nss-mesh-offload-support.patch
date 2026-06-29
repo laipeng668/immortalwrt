@@ -142,7 +142,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	void (*add_twt_setup)(struct ieee80211_hw *hw,
  			      struct ieee80211_sta *sta,
  			      struct ieee80211_twt_setup *twt);
-@@ -7993,4 +8022,101 @@ int ieee80211_emulate_switch_vif_chanctx
+@@ -8004,4 +8033,101 @@ int ieee80211_emulate_switch_vif_chanctx
   * Return: %true iff the vif is a NAN interface and NAN is started
   */
  bool ieee80211_vif_nan_started(struct ieee80211_vif *vif);
@@ -1223,7 +1223,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	if (info_id) {
  		info->status_data = info_id;
  		info->status_data_idr = 1;
-@@ -4305,6 +4315,7 @@ void __ieee80211_subif_start_xmit(struct
+@@ -4323,6 +4333,7 @@ void __ieee80211_subif_start_xmit(struct
  	struct sk_buff *next;
  	int len = skb->len;
  	struct ieee80211_key *key = NULL;
@@ -1231,7 +1231,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	struct ieee80211_sub_if_data *ap_sdata;
  
  	if (unlikely(!ieee80211_sdata_running(sdata) || skb->len < ETH_HLEN)) {
-@@ -4379,9 +4390,15 @@ void __ieee80211_subif_start_xmit(struct
+@@ -4397,9 +4408,15 @@ void __ieee80211_subif_start_xmit(struct
  			goto out;
  		}
  
