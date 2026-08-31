@@ -1,0 +1,33 @@
+From: Zheng Zhang <everything411@qq.com>
+Date: Sun, 23 Aug 2026 00:00:00 +0800
+Subject: [PATCH] wifi: ath11k: normalize undefined QCN9074 board id
+
+QCN9074 firmware 2.15.x reports 0xffffffff when no board id is defined,
+while ath11k uses 0xff for that case. This makes the driver generate a
+board name with qmi-board-id=-1 and the board file lookup fails with:
+
+  failed to fetch board data for bus=pci,qmi-chip-id=0,qmi-board-id=-1
+
+Convert only this QCN9074 sentinel to 0xff. Do not mask every board id,
+because the QMI field is u32 and valid ids may use bits above bit 7.
+
+Signed-off-by: Zheng Zhang <everything411@qq.com>
+Link: https://github.com/mirror/dd-wrt/commit/b9b601e8aa4a9dbc66cbc4c946f42114fa10260f
+---
+ drivers/net/wireless/ath/ath11k/qmi.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+--- a/drivers/net/wireless/ath/ath11k/qmi.c
++++ b/drivers/net/wireless/ath/ath11k/qmi.c
+@@ -2267,6 +2267,11 @@ static int ath11k_qmi_request_target_cap
+ 	else
+ 		ab->qmi.target.board_id = 0xFF;
+ 
++	/* QCN9074 firmware 2.15.x uses 0xffffffff for an undefined board id. */
++	if (ab->hw_rev == ATH11K_HW_QCN9074_HW10 &&
++	    ab->qmi.target.board_id == 0xffffffff)
++		ab->qmi.target.board_id = 0xFF;
++
+ 	if (resp.soc_info_valid)
+ 		ab->qmi.target.soc_id = resp.soc_info.soc_id;
+ 
