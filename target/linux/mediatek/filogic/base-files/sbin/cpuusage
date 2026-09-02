@@ -1,0 +1,23 @@
+#!/bin/sh
+# Copyright (C) 2024 ZqinKing <zqinking23@gmail.com>
+
+cpu_stats="$(top -bn1 | awk '/^CPU:/ {print $2, $4; exit}')"
+set -- $cpu_stats
+usr="$1"
+sys="$2"
+output="USR: ${usr} SYS: ${sys}"
+
+for ppe in /sys/kernel/debug/ppe*/entries; do
+	[ -f "$ppe" ] || continue
+
+	name="$(basename "$(dirname "$ppe")" | tr 'a-z' 'A-Z')"
+	ppe_stats="$(awk '/IPv4/{a++}/IPv6/{b++} END {print NR, a+0, b+0}' "$ppe")"
+	set -- $ppe_stats
+	total="$1"
+	ipv4="$2"
+	ipv6="$3"
+
+	[ -n "$total" ] && output="${output} ${name}: ${total} (IPv4: ${ipv4} IPv6: ${ipv6})"
+done
+
+echo -n "$output"

@@ -372,7 +372,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  #ifdef __KERNEL__
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
-@@ -471,6 +471,7 @@ assign_new_owner:
+@@ -477,6 +477,7 @@ assign_new_owner:
  		goto retry;
  	}
  	WRITE_ONCE(mm->owner, c);
@@ -382,7 +382,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  }
 --- a/kernel/fork.c
 +++ b/kernel/fork.c
-@@ -1092,6 +1092,7 @@ static struct mm_struct *mm_init(struct
+@@ -1098,6 +1098,7 @@ static struct mm_struct *mm_init(struct
  		goto fail_nocontext;
  
  	mm->user_ns = get_user_ns(user_ns);
@@ -390,7 +390,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	return mm;
  
  fail_nocontext:
-@@ -1134,6 +1135,7 @@ static inline void __mmput(struct mm_str
+@@ -1140,6 +1141,7 @@ static inline void __mmput(struct mm_str
  	}
  	if (mm->binfmt)
  		module_put(mm->binfmt->module);
@@ -398,7 +398,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	mmdrop(mm);
  }
  
-@@ -2700,6 +2702,13 @@ pid_t kernel_clone(struct kernel_clone_a
+@@ -2703,6 +2705,13 @@ pid_t kernel_clone(struct kernel_clone_a
  		get_task_struct(p);
  	}
  

@@ -9,7 +9,7 @@
  #ifdef CHAPMS
  #include "chap_ms.h"
  #define MDTYPE_ALL (MDTYPE_MICROSOFT_V2 | MDTYPE_MICROSOFT | MDTYPE_MD5)
-@@ -523,6 +525,18 @@ chap_respond(struct chap_client_state *cs, int id,
+@@ -523,6 +525,18 @@ chap_respond(struct chap_client_state *c
  	p[2] = len >> 8;
  	p[3] = len;
  
@@ -61,7 +61,7 @@
  # MS-CHAP authentication protocol.  Also, edit plugins/radius/Makefile.linux.
 --- a/pppd/options.c
 +++ b/pppd/options.c
-@@ -127,6 +127,7 @@ bool	dump_options;		/* print out option values */
+@@ -127,6 +127,7 @@ bool	dump_options;		/* print out option
  bool	dryrun;			/* print out option values and exit */
  char	*domain;		/* domain name set by domain option */
  int	child_wait = 5;		/* # seconds to wait for children at exit */
@@ -81,7 +81,7 @@
        OPT_PRIV|OPT_LLIMIT|OPT_INITONLY, NULL, 0, -1 },
 --- a/pppd/pppd.h
 +++ b/pppd/pppd.h
-@@ -335,6 +335,7 @@ extern char	*bundle_name;	/* bundle name for multilink */
+@@ -335,6 +335,7 @@ extern char	*bundle_name;	/* bundle name
  extern bool	dump_options;	/* print out option values */
  extern bool	dryrun;		/* check everything, print options, exit */
  extern int	child_wait;	/* # seconds to wait for children at end */

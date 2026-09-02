@@ -46,7 +46,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
 
 --- a/include/linux/netdevice.h
 +++ b/include/linux/netdevice.h
-@@ -1652,7 +1652,6 @@ struct net_device_ops {
+@@ -1654,7 +1654,6 @@ struct net_device_ops {
   * @IFF_FAILOVER: device is a failover master device
   * @IFF_FAILOVER_SLAVE: device is lower dev of a failover master device
   * @IFF_L3MDEV_RX_HANDLER: only invoke the rx handler of L3 master device
@@ -54,7 +54,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
   * @IFF_TX_SKB_NO_LINEAR: device/driver is capable of xmitting frames with
   *	skb_headlen(skb) == 0 (data starts from frag0)
   */
-@@ -1687,7 +1686,7 @@ enum netdev_priv_flags {
+@@ -1689,7 +1688,7 @@ enum netdev_priv_flags {
  	IFF_FAILOVER			= 1<<27,
  	IFF_FAILOVER_SLAVE		= 1<<28,
  	IFF_L3MDEV_RX_HANDLER		= 1<<29,
@@ -63,7 +63,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	IFF_TX_SKB_NO_LINEAR		= BIT_ULL(31),
  };
  
-@@ -1721,7 +1720,6 @@ enum netdev_priv_flags {
+@@ -1723,7 +1722,6 @@ enum netdev_priv_flags {
  #define IFF_FAILOVER			IFF_FAILOVER
  #define IFF_FAILOVER_SLAVE		IFF_FAILOVER_SLAVE
  #define IFF_L3MDEV_RX_HANDLER		IFF_L3MDEV_RX_HANDLER
@@ -73,7 +73,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  /* Specifies the type of the struct net_device::ml_priv pointer */
 --- a/net/core/dev.c
 +++ b/net/core/dev.c
-@@ -1273,22 +1273,6 @@ int dev_change_name(struct net_device *d
+@@ -1286,22 +1286,6 @@ int dev_change_name(struct net_device *d
  
  	net = dev_net(dev);
  
@@ -96,7 +96,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	down_write(&devnet_rename_sem);
  
  	if (strncmp(newname, dev->name, IFNAMSIZ) == 0) {
-@@ -1305,7 +1289,8 @@ int dev_change_name(struct net_device *d
+@@ -1318,7 +1302,8 @@ int dev_change_name(struct net_device *d
  	}
  
  	if (oldname[0] && !strchr(oldname, '%'))
