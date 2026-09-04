@@ -1,0 +1,34 @@
+#!/bin/sh
+# Copyright (C) 2024 YumesomeZakura <1552037053@qq.com>
+
+read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+idle_start=$((idle + iowait))
+total_start=$((user + nice + system + idle + iowait + irq + softirq + steal))
+sleep 1
+read -r _ user nice system idle iowait irq softirq steal _ < /proc/stat
+idle_end=$((idle + iowait))
+total_end=$((user + nice + system + idle + iowait + irq + softirq + steal))
+idle_delta=$((idle_end - idle_start))
+total_delta=$((total_end - total_start))
+cpu_usage=$(((100 * (total_delta - idle_delta)) / total_delta))
+combined_output=""
+connection_count=""
+
+if [ -e "/sys/kernel/debug/qca-nss-drv/stats/cpu_load_ubi" ]; then
+	nss_avg_utilization=$(awk 'NR==6 {print $2}' /sys/kernel/debug/qca-nss-drv/stats/cpu_load_ubi)
+	combined_output="${combined_output}${nss_avg_utilization}"
+fi
+
+if [ -r "/sys/kernel/debug/ecm/ecm_db/connection_count_simple" ]; then
+	read -r connection_count < /sys/kernel/debug/ecm/ecm_db/connection_count_simple
+fi
+
+if [ -n "$combined_output" ] && [ -n "$connection_count" ]; then
+	echo -n "CPU: ${cpu_usage}% HWE: ${combined_output} ECM: ${connection_count}"
+elif [ -n "$combined_output" ]; then
+	echo -n "CPU: ${cpu_usage}% HWE: ${combined_output}"
+elif [ -n "$connection_count" ]; then
+	echo -n "CPU: ${cpu_usage}% ECM: ${connection_count}"
+else
+	echo -n "CPU: ${cpu_usage}%"
+fi
