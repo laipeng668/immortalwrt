@@ -159,8 +159,25 @@ platform_do_upgrade() {
 		fw_setenv owrt_slotactive $((1 - active))
 		nand_do_upgrade "$1"
 		;;
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02|\
+	jdcloud,re-cs-07)
+		CI_KERNPART="0:HLOS"
+		CI_ROOTPART="rootfs"
+		emmc_do_upgrade "$1"
+		;;
 	*)
 		default_do_upgrade "$1"
+		;;
+	esac
+}
+
+platform_copy_config() {
+	case "$(board_name)" in
+	jdcloud,re-ss-01|\
+	jdcloud,re-cs-02|\
+	jdcloud,re-cs-07)
+		emmc_copy_config
 		;;
 	esac
 }
