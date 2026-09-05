@@ -248,7 +248,7 @@
  
  static void nl80211_sta_opmode_change_event(struct wpa_driver_nl80211_data *drv,
  					    struct nlattr **tb)
-@@ -4405,6 +4435,9 @@ static void do_process_drv_event(struct
+@@ -4405,6 +4436,9 @@ static void do_process_drv_event(struct
  	case NL80211_CMD_ASSOC_MLO_RECONF:
  		mlme_event_link_addition(drv, nla_data(frame), nla_len(frame));
  		break;
