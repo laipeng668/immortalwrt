@@ -12,14 +12,31 @@ only for the netdev which supports IEEE80211_OFFLOAD_*
 and have an check before checking checksum offset for the
 exceptional packets getting called from 8023_xmit API.
 
+Keep the active feature state synchronized with the selected netdev
+transmit path.  The feature remains available to supported interfaces,
+but ndo_fix_features masks it while the native path is selected.  This
+covers 4addr fallback and driver failures which clear encapsulation
+offload after interface creation.  Re-evaluate the transmit path when a
+station changes 4addr mode at runtime as well.
+
 Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 ---
- net/mac80211/ieee80211_i.h |  3 ++-
- net/mac80211/iface.c       |  4 ++++
- net/mac80211/tdls.c        |  2 +-
- net/mac80211/tx.c          | 19 ++++++++++---------
- 4 files changed, 17 insertions(+), 11 deletions(-)
+ net/mac80211/cfg.c   |    1 +
+ net/mac80211/tx.c    |    2 ++
+ net/mac80211/iface.c |   33 ++++++++++++++++++++++++++++++---
+ net/mac80211/mesh.c  |    4 +++-
+ 4 files changed, 36 insertions(+), 4 deletions(-)
 
+--- a/net/mac80211/cfg.c
++++ b/net/mac80211/cfg.c
+@@ -282,6 +282,7 @@ static int ieee80211_change_iface(struct
+ 			return 0;
+ 
+ 		sdata->u.mgd.use_4addr = params->use_4addr;
++		ieee80211_recalc_offload(local);
+ 		if (!ifmgd->associated)
+ 			return 0;
+ 
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
 @@ -38,6 +38,8 @@
@@ -31,54 +48,81 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  static void ieee80211_8023_xmit(struct ieee80211_sub_if_data *sdata,
  				struct net_device *dev, struct sta_info *sta,
  				struct ieee80211_key *key, struct sk_buff *skb,
-@@ -3726,7 +3728,7 @@ ieee80211_sdata_netdev_features(struct i
- }
- 
- static struct sk_buff *
--ieee80211_tx_skb_fixup(struct sk_buff *skb, netdev_features_t features)
-+ieee80211_tx_skb_fixup(struct sk_buff *skb, netdev_features_t features, struct net_device *dev)
- {
- 	if (skb_is_gso(skb)) {
- 		struct sk_buff *segs;
-@@ -3744,7 +3746,7 @@ ieee80211_tx_skb_fixup(struct sk_buff *s
- 	if (skb_needs_linearize(skb, features) && __skb_linearize(skb))
- 		goto free;
- 
--	if (skb->ip_summed == CHECKSUM_PARTIAL) {
-+	if (skb->ip_summed == CHECKSUM_PARTIAL && IS_HW_CSUM_NOT_ENABLED(dev)) {
- 		int ofs = skb_checksum_start_offset(skb);
- 
- 		if (skb->encapsulation)
-@@ -3892,7 +3894,7 @@ static bool ieee80211_xmit_fast(struct i
- 	memcpy(&eth, skb->data, ETH_HLEN - 2);
- 
- 	/* after this point (skb is modified) we cannot return false */
--	skb = ieee80211_tx_skb_fixup(skb, ieee80211_sdata_netdev_features(sdata));
-+	skb = ieee80211_tx_skb_fixup(skb, ieee80211_sdata_netdev_features(sdata), sdata->dev);
- 	if (!skb)
- 		return true;
- 
-@@ -4460,7 +4462,7 @@ void __ieee80211_subif_start_xmit(struct
- 	 * things so we cannot really handle checksum or GSO offload.
- 	 * fix it up in software before we handle anything else.
- 	 */
--	skb = ieee80211_tx_skb_fixup(skb, 0);
-+	skb = ieee80211_tx_skb_fixup(skb, 0, dev);
- 	if (!skb) {
- 		len = 0;
- 		goto out;
-@@ -4834,7 +4836,7 @@ static void ieee80211_8023_xmit(struct i
- 		}
- 	}
- 
--	skb = ieee80211_tx_skb_fixup(skb, ieee80211_sdata_netdev_features(sdata));
-+	skb = ieee80211_tx_skb_fixup(skb, ieee80211_sdata_netdev_features(sdata), dev);
- 	if (!skb)
- 		return;
- 
 --- a/net/mac80211/iface.c
 +++ b/net/mac80211/iface.c
-@@ -2454,6 +2454,11 @@ int ieee80211_if_add(struct ieee80211_lo
+@@ -969,6 +969,18 @@ static int ieee80211_netdev_setup_tc(str
+ 	return drv_net_setup_tc(local, sdata, dev, type, type_data);
+ }
+ 
++static netdev_features_t
++ieee80211_netdev_fix_features(struct net_device *dev,
++			      netdev_features_t features)
++{
++	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
++
++	if (!ieee80211_sdata_uses_8023_xmit(sdata))
++		features &= ~NETIF_F_HW_CSUM;
++
++	return features;
++}
++
+ static const struct net_device_ops ieee80211_dataif_ops = {
+ 	.ndo_open		= ieee80211_open,
+ 	.ndo_stop		= ieee80211_stop,
+@@ -977,6 +989,7 @@ static const struct net_device_ops ieee8
+ 	.ndo_set_rx_mode	= ieee80211_set_multicast_list,
+ 	.ndo_set_mac_address 	= ieee80211_change_mac,
+ 	.ndo_setup_tc		= ieee80211_netdev_setup_tc,
++	.ndo_fix_features	= ieee80211_netdev_fix_features,
+ };
+ 
+ static u16 ieee80211_monitor_select_queue(struct net_device *dev,
+@@ -1084,6 +1097,7 @@ static const struct net_device_ops ieee8
+ 	.ndo_set_mac_address	= ieee80211_change_mac,
+ 	.ndo_fill_forward_path	= ieee80211_netdev_fill_forward_path,
+ 	.ndo_setup_tc		= ieee80211_netdev_setup_tc,
++	.ndo_fix_features	= ieee80211_netdev_fix_features,
+ };
+ 
+ static bool ieee80211_iftype_supports_hdr_offload(enum nl80211_iftype iftype)
+@@ -1146,6 +1160,7 @@ static void ieee80211_set_vif_encap_ops(
+ 	struct ieee80211_local *local = sdata->local;
+ 	struct ieee80211_sub_if_data *bss = sdata;
+ 	bool enabled;
++	bool use_4addr = sdata->wdev.use_4addr;
+ 
+ 	if (sdata->vif.type == NL80211_IFTYPE_AP_VLAN &&
+ 	    !ieee80211_hw_check(&local->hw, SUPPORTS_NSS_OFFLOAD)) {
+@@ -1159,13 +1174,17 @@ static void ieee80211_set_vif_encap_ops(
+ 	    !ieee80211_iftype_supports_hdr_offload(bss->vif.type))
+ 		return;
+ 
++	if (sdata->vif.type == NL80211_IFTYPE_STATION)
++		use_4addr = sdata->u.mgd.use_4addr;
++
+ 	enabled = bss->vif.offload_flags & IEEE80211_OFFLOAD_ENCAP_ENABLED;
+-	if (sdata->wdev.use_4addr &&
++	if (use_4addr &&
+ 	    !(bss->vif.offload_flags & IEEE80211_OFFLOAD_ENCAP_4ADDR))
+ 		enabled = false;
+ 
+ 	sdata->dev->netdev_ops = enabled ? &ieee80211_dataif_8023_ops :
+ 					   &ieee80211_dataif_ops;
++	netdev_update_features(sdata->dev);
+ }
+ 
+ static void ieee80211_recalc_sdata_offload(struct ieee80211_sub_if_data *sdata)
+@@ -1175,8 +1194,8 @@ static void ieee80211_recalc_sdata_offlo
+ 
+ 	if (ieee80211_set_sdata_offload_flags(sdata)) {
+ 		drv_update_vif_offload(local, sdata);
+-		ieee80211_set_vif_encap_ops(sdata);
+ 	}
++	ieee80211_set_vif_encap_ops(sdata);
+ 
+ 	list_for_each_entry(vsdata, &local->interfaces, list) {
+ 		if (vsdata->vif.type != NL80211_IFTYPE_AP_VLAN ||
+@@ -2471,6 +2490,11 @@ int ieee80211_if_add(struct ieee80211_lo
  
  		ndev->features |= local->hw.netdev_features;
  		ndev->priv_flags |= IFF_LIVE_ADDR_CHANGE;
@@ -90,6 +134,16 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  		ndev->hw_features |= ndev->features &
  					MAC80211_SUPPORTED_FEATURES_TX;
  		sdata->vif.netdev_features = local->hw.netdev_features;
+@@ -2493,6 +2517,9 @@ int ieee80211_if_add(struct ieee80211_lo
+ 			free_netdev(ndev);
+ 			return ret;
+ 		}
++
++		/* The interface starts on the native transmit path. */
++		netdev_update_features(ndev);
+ 	}
+ 
+ 	mutex_lock(&local->iflist_mtx);
 --- a/net/mac80211/mesh.c
 +++ b/net/mac80211/mesh.c
 @@ -14,6 +14,8 @@

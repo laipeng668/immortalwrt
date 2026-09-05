@@ -6,13 +6,13 @@ Subject: [PATCH] ath11k: add HE stats in peer stats packet counters for MIMO
 
 Signed-off-by: Miles Hu <milehu@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/core.h        |  13 ++++++++-
- drivers/net/wireless/ath/ath11k/debugfs_sta.c | 161 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------
- drivers/net/wireless/ath/ath11k/dp.h          |  79 +++++++++++++++++++++++++++++++++++++++++++++++++++++--
- drivers/net/wireless/ath/ath11k/dp_rx.c       | 212 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------------------------
- drivers/net/wireless/ath/ath11k/peer.h        |  13 +++++++++
- drivers/net/wireless/ath/ath11k/rx_desc.h     |   5 ++++
- 6 files changed, 429 insertions(+), 54 deletions(-)
+ drivers/net/wireless/ath/ath11k/core.h        |   13 +-
+ drivers/net/wireless/ath/ath11k/debugfs_sta.c |  163 +++++++++++++++++--
+ drivers/net/wireless/ath/ath11k/dp.h          |   83 +++++++++-
+ drivers/net/wireless/ath/ath11k/dp_rx.c       |  214 ++++++++++++++++++++-----
+ drivers/net/wireless/ath/ath11k/peer.h        |   13 ++
+ drivers/net/wireless/ath/ath11k/rx_desc.h     |    5 +
+ 6 files changed, 433 insertions(+), 58 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/core.h
 +++ b/drivers/net/wireless/ath/ath11k/core.h
@@ -28,7 +28,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  	u64 bw[ATH11K_COUNTER_TYPE_MAX][ATH11K_BW_NUM];
  	u64 nss[ATH11K_COUNTER_TYPE_MAX][ATH11K_NSS_NUM];
  	u64 gi[ATH11K_COUNTER_TYPE_MAX][ATH11K_GI_NUM];
-+	u64 transmit_type[ATH11K_COUNTER_TYPE_MAX][HAL_RX_RECEPTION_TYPE_MAX];
++	u64 transmit_type[ATH11K_COUNTER_TYPE_MAX][HTT_PPDU_STATS_PPDU_TYPE_MAX];
 +	u64 ru_loc[ATH11K_COUNTER_TYPE_MAX][HAL_RX_RU_ALLOC_TYPE_MAX];
  };
  
@@ -482,15 +482,16 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  		break;
  	case HTT_PPDU_STATS_TAG_USR_RATE:
  		if (len < sizeof(struct htt_ppdu_stats_user_rate)) {
-@@ -1290,6 +1311,7 @@ static int ath11k_htt_tlv_ppdu_stats_par
+@@ -1290,6 +1311,8 @@ static int ath11k_htt_tlv_ppdu_stats_par
  						      peer_id);
  		if (cur_user < 0)
  			return -EINVAL;
-+		ppdu_info->bar_num_users += 1;
++		ppdu_info->bar_num_users = max_t(u32, ppdu_info->bar_num_users,
++						 cur_user + 1);
  		user_stats = &ppdu_info->ppdu_stats.user_stats[cur_user];
  		user_stats->peer_id = peer_id;
  		user_stats->is_valid_peer_id = true;
-@@ -1318,44 +1340,30 @@ static int ath11k_htt_tlv_ppdu_stats_par
+@@ -1318,44 +1341,31 @@ static int ath11k_htt_tlv_ppdu_stats_par
  		       sizeof(struct htt_ppdu_stats_usr_cmpltn_ack_ba_status));
  		user_stats->tlv_flags |= BIT(tag);
  		break;
@@ -551,11 +552,12 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
 +	default:
 +		break;
  	}
-+	ppdu_info->tlv_bitmap |= BIT(tag);
++	if (tag < 32)
++		ppdu_info->tlv_bitmap |= BIT(tag);
  	return 0;
  }
  
-@@ -1373,8 +1381,8 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1373,8 +1383,8 @@ ath11k_update_per_peer_tx_stats(struct a
  	struct htt_ppdu_stats_common *common = &ppdu_stats->common;
  	int ret;
  	u8 flags, mcs, nss, bw, sgi, dcm, rate_idx = 0;
@@ -566,7 +568,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  	u32 tx_duration = 0;
  	u8 tid = HTT_PPDU_STATS_NON_QOS_TID;
  	bool is_ampdu = false;
-@@ -1405,6 +1413,11 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1405,6 +1415,11 @@ ath11k_update_per_peer_tx_stats(struct a
  	mcs = HTT_USR_RATE_MCS(user_rate->rate_flags);
  	sgi = HTT_USR_RATE_GI(user_rate->rate_flags);
  	dcm = HTT_USR_RATE_DCM(user_rate->rate_flags);
@@ -578,7 +580,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  
  	/* Note: If host configured fixed rates and in some other special
  	 * cases, the broadcast/management frames are sent in different rates.
-@@ -1499,6 +1512,12 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1499,6 +1514,12 @@ ath11k_update_per_peer_tx_stats(struct a
  		peer_stats->ba_fails =
  			HTT_USR_CMPLTN_LONG_RETRY(usr_stats->cmpltn_cmn.flags) +
  			HTT_USR_CMPLTN_SHORT_RETRY(usr_stats->cmpltn_cmn.flags);
@@ -591,7 +593,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  
  		if (ath11k_debugfs_is_extd_tx_stats_enabled(ar))
  			ath11k_debugfs_sta_add_tx_stats(arsta, peer_stats, rate_idx);
-@@ -1551,13 +1570,89 @@ struct htt_ppdu_stats_info *ath11k_dp_ht
+@@ -1551,13 +1572,84 @@ struct htt_ppdu_stats_info *ath11k_dp_ht
  	return ppdu_info;
  }
  
@@ -634,12 +636,7 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
 +	const void *begin = ptr;
 +	u16 tlv_tag, tlv_len;
 +	int ret = -EINVAL;
-+	struct htt_ppdu_stats_info * ppdu_info = NULL;
 +
-+	if (data) {
-+		ppdu_info = (struct htt_ppdu_stats_info *)data;
-+		ppdu_info->tlv_bitmap = 0;
-+	}
 +	while (len > 0) {
 +		if (len < sizeof(*tlv)) {
 +			ath11k_err(ab, "htt tlv parse failure at byte %zd (%zu bytes left, %zu expected)\n",
@@ -658,8 +655,8 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
 +			return -EINVAL;
 +		}
 +
-+		ret = iter(ab, tlv_tag, tlv_len, ptr, ppdu_info);
-+		if (ret == -ENOMEM)
++		ret = iter(ab, tlv_tag, tlv_len, ptr, data);
++		if (ret)
 +			return ret;
 +
 +		ptr += tlv_len;
@@ -682,7 +679,15 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
  	u8 pdev_id;
  	u32 ppdu_id, len;
  
-@@ -1592,6 +1687,47 @@ static int ath11k_htt_pull_ppdu_stats(st
+@@ -1584,6 +1676,7 @@ static int ath11k_htt_pull_ppdu_stats(st
+ 	}
+ 
+ 	ppdu_info->ppdu_id = ppdu_id;
++	ppdu_info->tlv_bitmap = 0;
+ 	ret = ath11k_dp_htt_tlv_iter(ab, msg->data, len,
+ 				     ath11k_htt_tlv_ppdu_stats_parse,
+ 				     (void *)ppdu_info);
+@@ -1592,6 +1685,49 @@ static int ath11k_htt_pull_ppdu_stats(st
  		goto out_unlock_data;
  	}
  
@@ -691,7 +696,8 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
 +	    (ppdu_info->tlv_bitmap & (1 << HTT_PPDU_STATS_TAG_USR_COMMON)) &&
 +	    ppdu_info->delay_ba) {
 +
-+		for (i = 0; i < ppdu_info->ppdu_stats.common.num_users; i++) {
++		for (i = 0; i < min_t(u32, ppdu_info->ppdu_stats.common.num_users,
++				  ARRAY_SIZE(ppdu_info->ppdu_stats.user_stats)); i++) {
 +			peer_id = ppdu_info->ppdu_stats.user_stats[i].peer_id;
 +			spin_lock_bh(&ab->base_lock);
 +			peer = ath11k_peer_find_by_id(ab, peer_id);
@@ -711,7 +717,8 @@ Signed-off-by: Miles Hu <milehu@codeaurora.org>
 +	if (ppdu_info->frame_type == HTT_STATS_PPDU_FTYPE_BAR &&
 +	    (ppdu_info->tlv_bitmap & (1 << HTT_PPDU_STATS_TAG_USR_COMMON))) {
 +
-+		for (i = 0; i < ppdu_info->bar_num_users; i++) {
++		for (i = 0; i < min_t(u32, ppdu_info->bar_num_users,
++				  ARRAY_SIZE(ppdu_info->ppdu_stats.user_stats)); i++) {
 +			peer_id = ppdu_info->ppdu_stats.user_stats[i].peer_id;
 +			spin_lock_bh(&ab->base_lock);
 +			peer = ath11k_peer_find_by_id(ab, peer_id);

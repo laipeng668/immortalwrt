@@ -12,12 +12,12 @@ to ASSOC.
 
 Signed-off-by: Karthikeyan Kathirvel <quic_kathirve@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/mac.c | 17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
+ drivers/net/wireless/ath/ath11k/mac.c |   12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -5218,12 +5218,6 @@ static int ath11k_station_disassoc(struc
+@@ -5208,12 +5208,6 @@ static int ath11k_station_disassoc(struc
  			return ret;
  	}
  
@@ -30,21 +30,16 @@ Signed-off-by: Karthikeyan Kathirvel <quic_kathirve@quicinc.com>
  	return 0;
  }
  
-@@ -10593,6 +10587,17 @@ static int ath11k_mac_op_sta_state(struc
- 		arsta->bw = ath11k_mac_ieee80211_sta_bw_to_wmi(ar, sta);
- 		arsta->bw_prev = arsta->bw;
- 		spin_unlock_bh(&ar->data_lock);
+@@ -10666,6 +10660,12 @@ static int ath11k_mac_op_sta_state(struc
+ 			peer->is_authorized = false;
+ 
+ 		spin_unlock_bh(&ar->ab->base_lock);
 +
-+		/* Driver should clear the peer keys during mac80211's ref ptr
-+		 * gets cleared in __sta_info_destroy_part2 (trans from
-+		 * IEEE80211_STA_AUTHORIZED to IEEE80211_STA_ASSOC)
-+		 */
++		/* Clear keys before mac80211 drops its references. */
 +		ret = ath11k_clear_peer_keys(arvif, sta->addr);
-+		if (ret) {
++		if (ret)
 +			ath11k_warn(ar->ab, "failed to clear all peer keys for vdev %i: %d\n",
-+					arvif->vdev_id, ret);
-+			return ret;
-+		}
++				    arvif->vdev_id, ret);
  	} else if (old_state == IEEE80211_STA_ASSOC &&
- 		   new_state == IEEE80211_STA_AUTHORIZED) {
- 		spin_lock_bh(&ar->ab->base_lock);
+ 		   new_state == IEEE80211_STA_AUTH &&
+ 		   (vif->type == NL80211_IFTYPE_AP ||

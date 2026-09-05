@@ -1,11 +1,11 @@
- drivers/net/wireless/ath/ath11k/debugfs_sta.c |  2 +-
- drivers/net/wireless/ath/ath11k/dp_rx.c       | 11 +++++------
- drivers/net/wireless/ath/ath11k/mac.c         |  2 +-
+ drivers/net/wireless/ath/ath11k/debugfs_sta.c |    2 +-
+ drivers/net/wireless/ath/ath11k/dp_rx.c       |   11 +++++------
+ drivers/net/wireless/ath/ath11k/mac.c         |    2 +-
  3 files changed, 7 insertions(+), 8 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/debugfs_sta.c
 +++ b/drivers/net/wireless/ath/ath11k/debugfs_sta.c
-@@ -1208,7 +1208,7 @@ static ssize_t ath11k_dbg_sta_reset_rx_s
+@@ -1210,7 +1210,7 @@ static ssize_t ath11k_dbg_sta_reset_rx_s
  					     size_t count, loff_t *ppos)
  {
  	struct ieee80211_sta *sta = file->private_data;
@@ -16,7 +16,7 @@
  
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1575,7 +1575,7 @@ static void ath11k_dp_ppdu_stats_flush_t
+@@ -1576,7 +1576,7 @@ static void ath11k_dp_ppdu_stats_flush_t
  		goto exit;
  
  	sta = peer->sta;
@@ -25,7 +25,7 @@
  
  	memset(&status, 0, sizeof(status));
  
-@@ -1941,7 +1941,7 @@ ath11k_dp_rx_ppdu_stats_update_tx_comp_s
+@@ -1938,7 +1938,7 @@ ath11k_dp_rx_ppdu_stats_update_tx_comp_s
  		}
  
  		sta = peer->sta;
@@ -34,17 +34,17 @@
  
  		memset(&status, 0, sizeof(status));
  
-@@ -2982,8 +2982,7 @@ static void ath11k_dp_rx_h_mpdu(struct a
+@@ -2964,8 +2964,7 @@ static int ath11k_dp_rx_h_mpdu(struct at
  				msdu->protocol = eth_type_trans(msdu, msdu->dev);
  				napi_gro_receive(rxcb->napi, msdu);
  				if (peer->sta)
 -					arsta =
 -					(struct ath11k_sta *)peer->sta->drv_priv;
 +					arsta = ath11k_sta_to_arsta(peer->sta);
- 				return;
+ 				return 0;
  			}
  		}
-@@ -3754,7 +3753,7 @@ static void ath11k_dp_rx_update_user_sta
+@@ -3750,7 +3749,7 @@ static void ath11k_dp_rx_update_user_sta
  		return;
  	}
  
@@ -53,7 +53,7 @@
  	rx_stats = arsta->rx_stats;
  
  	if (ar->ab->nss.enabled)
-@@ -6457,7 +6456,7 @@ int ath11k_dp_rx_process_mon_status(stru
+@@ -6461,7 +6460,7 @@ int ath11k_dp_rx_process_mon_status(stru
  		if ((ppdu_info->fc_valid) &&
  		    (ppdu_info->ast_index != HAL_AST_IDX_INVALID)) {
  			if (ppdu_info->reception_type == HAL_RX_RECEPTION_TYPE_SU) {
@@ -64,7 +64,7 @@
  			} else {
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -4641,7 +4641,7 @@ static int ath11k_mac_op_set_key(struct
+@@ -4643,7 +4643,7 @@ static int ath11k_mac_op_set_key(struct
  	mutex_lock(&ar->conf_mutex);
  	if (sta) {
  		peer_addr = sta->addr;

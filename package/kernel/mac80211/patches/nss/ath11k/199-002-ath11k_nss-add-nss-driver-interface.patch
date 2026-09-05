@@ -9,19 +9,19 @@ tx/rx. NSS Stats addition is not part of this version.
 
 Signed-off-by: Sriram R <srirrama@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/Kconfig  |   10 +
- drivers/net/wireless/ath/ath11k/Makefile |    1 +
- drivers/net/wireless/ath/ath11k/core.h   |    3 +
- drivers/net/wireless/ath/ath11k/dp_rx.c  |   23 ++
- drivers/net/wireless/ath/ath11k/dp_rx.h  |   31 ++
- drivers/net/wireless/ath/ath11k/hif.h    |    9 +
- drivers/net/wireless/ath/ath11k/mac.c    |   10 +
- drivers/net/wireless/ath/ath11k/nss.c    | 2399 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- drivers/net/wireless/ath/ath11k/nss.h    |  307 ++++++++++++++++++++
- drivers/net/wireless/ath/ath11k/pci.c    |   15 +
- drivers/net/wireless/ath/ath11k/wmi.c    |   38 +++
- drivers/net/wireless/ath/ath11k/wmi.h    |   33 +++
- 12 files changed, 2879 insertions(+)
+ drivers/net/wireless/ath/ath11k/Kconfig  |   10
+ drivers/net/wireless/ath/ath11k/Makefile |    1
+ drivers/net/wireless/ath/ath11k/core.h   |    3
+ drivers/net/wireless/ath/ath11k/dp_rx.c  |   23
+ drivers/net/wireless/ath/ath11k/dp_rx.h  |   31
+ drivers/net/wireless/ath/ath11k/hif.h    |    9
+ drivers/net/wireless/ath/ath11k/mac.c    |   10
+ drivers/net/wireless/ath/ath11k/nss.c    | 2418 ++++++++++++++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/nss.h    |  315 ++++
+ drivers/net/wireless/ath/ath11k/pci.c    |   15
+ drivers/net/wireless/ath/ath11k/wmi.c    |   38
+ drivers/net/wireless/ath/ath11k/wmi.h    |   33
+ 12 files changed, 2906 insertions(+)
 
 --- a/drivers/net/wireless/ath/ath11k/Kconfig
 +++ b/drivers/net/wireless/ath/ath11k/Kconfig
@@ -196,11 +196,14 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	/* TODO: Do we need to enable ANI? */
 --- /dev/null
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -0,0 +1,2399 @@
+@@ -0,0 +1,2418 @@
 +// SPDX-License-Identifier: BSD-3-Clause-Clear
 +/*
 + * Copyright (c) 2020 The Linux Foundation. All rights reserved.
 + */
++
++#include <linux/atomic.h>
++#include <linux/panic.h>
 +
 +#include "debug.h"
 +#include "mac.h"
@@ -212,6 +215,107 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +#include "../../../../../net/mac80211/sta_info.h"
 +
 +/*-----------------------------ATH11K-NSS Helpers--------------------------*/
++
++/* Never reuse a lifecycle request cookie across radios or SoC reinitialization. */
++static atomic_long_t ath11k_nss_cmd_cookie = ATOMIC_LONG_INIT(0);
++
++static void __noreturn
++ath11k_nss_fail_stop(struct ath11k_base *ab, const char *operation, int error)
++{
++	/* The NSS SDK has no client reset that guarantees DMA has stopped.
++	 * A returning error would let upper teardown paths free shared memory.
++	 */
++	panic("ath11k %s: NSS %s failed (%d), refusing to release DMA resources",
++	      dev_name(ab->dev), operation, error);
++}
++
++static void ath11k_nss_cmd_complete(void *context, struct nss_wifili_msg *msg)
++{
++	struct ath11k_base *ab = context;
++	struct ath11k_soc_nss *nss = &ab->nss;
++
++	spin_lock_bh(&nss->cmd_lock);
++	if (!nss->cmd_pending || msg->cm.interface != nss->if_num ||
++	    msg->cm.type != nss->cmd_type ||
++	    msg->cm.app_data != (nss_ptr_t)nss->cmd_cookie ||
++	    msg->cm.response >= NSS_CMN_RESPONSE_NOTIFY) {
++		spin_unlock_bh(&nss->cmd_lock);
++		return;
++	}
++
++	nss->response = msg->cm.response;
++	nss->cmd_error = msg->cm.error;
++	nss->cmd_pending = false;
++	/* Complete under the lock so this reply cannot wake the next request. */
++	complete(&nss->cmd_complete);
++	spin_unlock_bh(&nss->cmd_lock);
++}
++
++static int ath11k_nss_cmd_sync(struct ath11k_base *ab,
++			     struct nss_wifili_msg *msg)
++{
++	struct ath11k_soc_nss *nss = &ab->nss;
++	unsigned long cookie;
++	nss_tx_status_t status;
++	int ret;
++
++	lockdep_assert_held(&ab->core_lock);
++
++	cookie = (unsigned long)atomic_long_inc_return(&ath11k_nss_cmd_cookie);
++	if (!cookie)
++		ath11k_nss_fail_stop(ab, "request cookie exhausted", -EOVERFLOW);
++
++	spin_lock_bh(&nss->cmd_lock);
++	if (nss->cmd_pending) {
++		spin_unlock_bh(&nss->cmd_lock);
++		ath11k_nss_fail_stop(ab, "overlapping lifecycle requests", -EBUSY);
++	}
++	reinit_completion(&nss->cmd_complete);
++	nss->cmd_cookie = cookie;
++	nss->cmd_type = msg->cm.type;
++	nss->response = NSS_CMN_RESPONSE_LAST;
++	nss->cmd_error = 0;
++	nss->cmd_pending = true;
++	/* Both SDKs preserve this opaque field in the common reply header. */
++	msg->cm.cb = (nss_ptr_t)ath11k_nss_cmd_complete;
++	msg->cm.app_data = (nss_ptr_t)cookie;
++	spin_unlock_bh(&nss->cmd_lock);
++
++	status = nss_wifili_tx_msg(nss->ctx, msg);
++	if (status != NSS_TX_SUCCESS) {
++		/* nss_core_send_cmd() reports failure only before queue ownership. */
++		spin_lock_bh(&nss->cmd_lock);
++		nss->cmd_pending = false;
++		spin_unlock_bh(&nss->cmd_lock);
++		ath11k_warn(ab, "NSS lifecycle message %u enqueue failed: %d\n",
++			    msg->cm.type, status);
++		return -EIO;
++	}
++
++	if (msg->cm.type == NSS_WIFILI_INIT_MSG)
++		nss->dma_active = true;
++
++	wait_for_completion_timeout(&nss->cmd_complete,
++				    msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
++	spin_lock_bh(&nss->cmd_lock);
++	if (nss->cmd_pending) {
++		nss->cmd_pending = false;
++		ret = -ETIMEDOUT;
++	} else {
++		ret = nss->response == NSS_CMN_RESPONSE_ACK ? 0 : -EIO;
++	}
++	spin_unlock_bh(&nss->cmd_lock);
++
++	if (ret) {
++		ath11k_err(ab, "NSS lifecycle message %u cookie %lu failed: response %d error %u\n",
++			   msg->cm.type, cookie, nss->response, nss->cmd_error);
++		ath11k_nss_fail_stop(ab, "lifecycle response", ret);
++	}
++
++	return 0;
++}
++
++
 +
 +static enum ath11k_nss_opmode
 +ath11k_nss_get_vdev_opmode(struct ath11k_vif *arvif)
@@ -273,7 +377,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	struct ath11k_peer *peer;
 +	struct nss_wifili_peer_ctrl_stats *pstats = NULL;
 +	int i, j;
-+	u64 tx_packets, tx_bytes, tx_dropped = 0;
++	u64 tx_packets, tx_bytes, tx_dropped;
 +	u64 rx_packets, rx_bytes, rx_dropped;
 +
 +	if (!ab->nss.stats_enabled)
@@ -296,7 +400,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		if (!peer->nss.nss_stats) {
 +			spin_unlock_bh(&ab->base_lock);
 +			rcu_read_unlock();
-+			return;
++			continue;
 +		}
 +
 +		if (pstats->tx.tx_success_cnt)
@@ -310,12 +414,13 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			pstats->tx.tx_ucast_cnt +
 +			pstats->tx.tx_bcast_cnt;
 +		peer->nss.nss_stats->tx_packets += tx_packets;
-+		tx_bytes = pstats->tx.tx_mcast_bytes +
++		tx_bytes = (u64)pstats->tx.tx_mcast_bytes +
 +			pstats->tx.tx_ucast_bytes +
 +			pstats->tx.tx_bcast_bytes;
 +		peer->nss.nss_stats->tx_bytes += tx_bytes;
 +		peer->nss.nss_stats->tx_retries += pstats->tx.retries;
 +
++		tx_dropped = 0;
 +		for (j = 0; j < NSS_WIFILI_TQM_RR_MAX; j++)
 +			tx_dropped += pstats->tx.dropped.drop_stats[j];
 +
@@ -398,7 +503,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		skb_put(skb, IEEE80211_TKIP_ICV_LEN);
 +}
 +
-+static void ath11k_nss_peer_mem_free(struct ath11k_base *ab, u32 peer_id)
++static void ath11k_nss_peer_msg_complete(struct ath11k_base *ab, u32 peer_id,
++					 bool free_mem)
 +{
 +	struct ath11k_peer *peer;
 +
@@ -407,17 +513,21 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	peer = ath11k_peer_find_by_id(ab, peer_id);
 +	if (!peer) {
 +		spin_unlock_bh(&ab->base_lock);
-+		if(ab->nss.debug_mode)
-+			ath11k_warn(ab, "ath11k_nss: unable to free peer mem, peer_id:%d\n",
-+					peer_id);
++		if (ab->nss.debug_mode)
++			ath11k_warn(ab, "ath11k_nss: unable to complete peer msg, peer_id:%d\n",
++				    peer_id);
 +		return;
 +	}
 +
-+	dma_unmap_single(ab->dev, peer->nss.paddr,
-+			 WIFILI_NSS_PEER_BYTE_SIZE, DMA_FROM_DEVICE);
-+
-+	kfree(peer->nss.vaddr);
-+	if (peer->nss.nss_stats) {
++	if (free_mem) {
++		if (peer->nss.vaddr) {
++			dma_unmap_single(ab->dev, peer->nss.paddr,
++					 WIFILI_NSS_PEER_BYTE_SIZE,
++					 DMA_BIDIRECTIONAL);
++			kfree(peer->nss.vaddr);
++			peer->nss.vaddr = NULL;
++			peer->nss.paddr = 0;
++		}
 +		kfree(peer->nss.nss_stats);
 +		peer->nss.nss_stats = NULL;
 +	}
@@ -425,7 +535,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	complete(&peer->nss.complete);
 +	spin_unlock_bh(&ab->base_lock);
 +
-+	ath11k_dbg(ab, ATH11K_DBG_NSS, "nss peer %d mem freed\n", peer_id);
++	if (free_mem)
++		ath11k_dbg(ab, ATH11K_DBG_NSS, "nss peer %d mem freed\n", peer_id);
 +}
 +
 +/*-----------------------------Events/Callbacks------------------------------*/
@@ -451,8 +562,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	case NSS_WIFILI_SOC_RESET_MSG:
 +	case NSS_WIFILI_STOP_MSG:
 +	case NSS_WIFILI_PDEV_DEINIT_MSG:
-+		ab->nss.response = response;
-+		complete(&ab->nss.complete);
++		/* Lifecycle replies are handled by ath11k_nss_cmd_complete. */
 +		break;
 +
 +	case NSS_WIFILI_PEER_CREATE_MSG:
@@ -462,19 +572,19 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		peer_id = (&msg->msg.peermsg)->peer_id;
 +
 +		/* free peer memory allocated during peer create due to failure */
-+		ath11k_nss_peer_mem_free(ab, peer_id);
++		ath11k_nss_peer_msg_complete(ab, peer_id, true);
 +		break;
 +	case NSS_WIFILI_PEER_DELETE_MSG:
 +		peer_id = (&msg->msg.peermsg)->peer_id;
 +
-+		if (response == NSS_CMN_RESPONSE_EMSG)
-+			ath11k_warn(ab, "ath11k_nss: peer delete failed (peer_id: %d)\n",
-+				    peer_id);
++		if (response != NSS_CMN_RESPONSE_ACK)
++			ath11k_warn(ab,
++				    "ath11k_nss: peer delete failed (peer_id: %d response: %d error: %d)\n",
++				    peer_id, response, error);
 +
-+		/* free peer memory allocated during peer create irrespective of
-+		 * delete status
-+		 */
-+		ath11k_nss_peer_mem_free(ab, peer_id);
++		/* NSS can still reference peer memory when delete fails. */
++		ath11k_nss_peer_msg_complete(ab, peer_id,
++					     response == NSS_CMN_RESPONSE_ACK);
 +		break;
 +	case NSS_WIFILI_PEER_SECURITY_TYPE_MSG:
 +		if (response == NSS_CMN_RESPONSE_EMSG)
@@ -591,7 +701,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		ath11k_nss_process_mic_error(ab, skb);
 +		break;
 +	default:
-+		kfree(skb);
++		dev_kfree_skb_any(skb);
 +		break;
 +	}
 +}
@@ -665,7 +775,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +
 +	/* create list containing all the subframes */
 +	ieee80211_amsdu_to_8023s(skb, &subframe_list, NULL,
-+				 vif->type, 0, NULL, NULL);
++				 vif->type, 0, NULL, NULL, 0);
 +
 +	/* This shouldn't happen, indicating error during defragmentation */
 +	if (skb_queue_empty(&subframe_list))
@@ -1340,6 +1450,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	struct sta_info *stainfo;
 +	struct ath11k_peer *peer;
 +	int tid_idx;
++	unsigned int start;
++	u64 rx_bytes;
 +	struct ath11k *ar = arsta->arvif->ar;
 +	struct ath11k_base *ab = ar->ab;
 +
@@ -1394,7 +1506,12 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		peer->nss.nss_stats->rx_packets;
 +	sinfo->filled |= BIT_ULL(NL80211_STA_INFO_RX_PACKETS);
 +
-+	sinfo->rx_bytes = u64_stats_read(&stainfo->deflink.rx_stats.bytes) +
++	do {
++		start = u64_stats_fetch_begin(&stainfo->deflink.rx_stats.syncp);
++		rx_bytes = u64_stats_read(&stainfo->deflink.rx_stats.bytes);
++	} while (u64_stats_fetch_retry(&stainfo->deflink.rx_stats.syncp, start));
++
++	sinfo->rx_bytes = rx_bytes +
 +		peer->nss.nss_stats->rx_bytes;
 +	sinfo->filled |= BIT_ULL(NL80211_STA_INFO_RX_BYTES);
 +
@@ -1421,14 +1538,24 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +				  struct ath11k_peer *peer,
 +				  struct hal_rx_user_status *user_stats)
 +{
-+	struct ath11k_sta *arsta = (struct ath11k_sta *)peer->sta->drv_priv;
++	struct ath11k_sta *arsta;
 +	u16 ath11k_hal_rx_legacy_rates[] =
 +	{ 10, 20, 55, 60, 90, 110, 120, 180, 240, 360, 480, 540 };
 +	u16 rate = 0;
 +	u32 preamble_type;
 +	u8 mcs, nss;
-+	struct ath11k *ar = arsta->arvif->ar;
-+	struct ath11k_base *ab = ar->ab;
++	struct ath11k *ar;
++	struct ath11k_base *ab;
++
++	if (!ppdu_info || !peer || !peer->sta)
++		return;
++
++	arsta = ath11k_sta_to_arsta(peer->sta);
++	if (!arsta || !arsta->arvif || !arsta->arvif->ar)
++		return;
++
++	ar = arsta->arvif->ar;
++	ab = ar->ab;
 +
 +	if (!ab->nss.enabled)
 +		return;
@@ -1523,17 +1650,17 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	}
 +
 +	if (!peer->nss.vaddr) {
-+		ath11k_warn(ab, "peer already deleted or peer create failed %pM\n",
-+			    addr);
++		ath11k_dbg(ab, ATH11K_DBG_NSS,
++			   "nss peer already deleted or was never created %pM\n", addr);
 +		spin_unlock_bh(&ab->base_lock);
-+		return -EINVAL;
++		return 0;
 +	}
 +
 +	wlmsg = kzalloc(sizeof(struct nss_wifili_msg), GFP_ATOMIC);
 +	if (!wlmsg) {
 +		ath11k_warn(ab, "nss send peer delete msg alloc failure\n");
-+		ret = -ENOMEM;
-+		goto free_peer;
++		spin_unlock_bh(&ab->base_lock);
++		return -ENOMEM;
 +	}
 +
 +	peer_msg = &wlmsg->msg.peermsg;
@@ -1554,40 +1681,30 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	if (status != NSS_TX_SUCCESS) {
 +		ath11k_warn(ab, "nss send peer (%pM) delete msg tx error %d\n",
 +			    addr, status);
-+		ret = -EINVAL;
++		spin_unlock_bh(&ab->base_lock);
 +		kfree(wlmsg);
-+		goto free_peer;
-+	} else {
-+		ath11k_dbg(ab, ATH11K_DBG_NSS, "nss peer delete message success : peer_id %d\n",
-+			   peer->peer_id);
-+		ret = 0;
++		return -EINVAL;
 +	}
++
++	ath11k_dbg(ab, ATH11K_DBG_NSS,
++		   "nss peer delete message sent: peer_id %d\n", peer->peer_id);
 +
 +	spin_unlock_bh(&ab->base_lock);
 +
 +	kfree(wlmsg);
 +
-+	/* No need to return failure or free up here, since the msg was tx succesfully
-+	 * the peer delete response would be received from NSS which will free up
-+	 * the allocated memory
-+	 */
 +	ret = wait_for_completion_timeout(&peer->nss.complete,
 +					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (ab->nss.debug_mode && !ret)
++	if (!ret) {
 +		ath11k_warn(ab, "timeout while waiting for nss peer delete msg response\n");
++		return -ETIMEDOUT;
++	}
++
++	/* An ACK callback releases the peer memory; an error leaves it mapped. */
++	if (peer->nss.vaddr)
++		return -EINVAL;
 +
 +	return 0;
-+
-+free_peer:
-+	dma_unmap_single(ab->dev, peer->nss.paddr,
-+		 WIFILI_NSS_PEER_BYTE_SIZE, DMA_FROM_DEVICE);
-+	kfree(peer->nss.vaddr);
-+	if (peer->nss.nss_stats) {
-+		kfree(peer->nss.nss_stats);
-+		peer->nss.nss_stats = NULL;
-+	}
-+	spin_unlock_bh(&ab->base_lock);
-+	return ret;
 +}
 +
 +int ath11k_nss_peer_create(struct ath11k_base *ab, struct ath11k_peer *peer)
@@ -1625,18 +1742,27 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	}
 +
 +	peer->nss.paddr = dma_map_single(ab->dev, peer->nss.vaddr,
-+					 WIFILI_NSS_PEER_BYTE_SIZE, DMA_TO_DEVICE);
++					 WIFILI_NSS_PEER_BYTE_SIZE, DMA_BIDIRECTIONAL);
 +
 +	ret = dma_mapping_error(ab->dev, peer->nss.paddr);
 +	if (ret) {
 +		ath11k_warn(ab, "error during nss peer info  memalloc\n");
 +		kfree(peer->nss.vaddr);
++		peer->nss.vaddr = NULL;
++		peer->nss.paddr = 0;
 +		ret = -ENOMEM;
 +		goto msg_free;
 +	}
 +
 +	peer_msg->nss_peer_mem = peer->nss.paddr;
 +	peer_msg->psta_vdev_id = peer->vdev_id;
++
++	peer->nss.nss_stats = kzalloc(sizeof(*peer->nss.nss_stats), GFP_ATOMIC);
++	if (!peer->nss.nss_stats) {
++		ret = -ENOMEM;
++		ath11k_warn(ab, "Unable to create nss stats memory\n");
++		goto peer_mem_free;
++	}
 +
 +	msg_cb = (nss_wifili_msg_callback_t)ath11k_nss_wifili_event_receive;
 +
@@ -1659,19 +1785,16 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		   peer_msg->peer_mac_addr, peer_msg->vdev_id, peer_msg->peer_id,
 +		   peer_msg->hw_ast_idx, peer_msg->tx_ast_hash);
 +
-+	peer->nss.nss_stats = kzalloc(sizeof(*peer->nss.nss_stats), GFP_ATOMIC);
-+	if (!peer->nss.nss_stats) {
-+		ret = -ENOMEM;
-+		ath11k_warn(ab, "Unable to create nss stats memory\n");
-+		goto peer_mem_free;
-+	}
-+
 +	goto msg_free;
 +
 +peer_mem_free:
++	kfree(peer->nss.nss_stats);
++	peer->nss.nss_stats = NULL;
 +	dma_unmap_single(ab->dev, peer->nss.paddr,
-+			 WIFILI_NSS_PEER_BYTE_SIZE, DMA_FROM_DEVICE);
++			 WIFILI_NSS_PEER_BYTE_SIZE, DMA_BIDIRECTIONAL);
 +	kfree(peer->nss.vaddr);
++	peer->nss.vaddr = NULL;
++	peer->nss.paddr = 0;
 +msg_free:
 +	kfree(wlmsg);
 +	return ret;
@@ -1765,8 +1888,11 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +{
 +	int i;
 +
++	if (ab->nss.dma_active)
++		ath11k_nss_fail_stop(ab, "free while DMA active", -EBUSY);
++
 +	for (i = 0; i < ATH11K_NSS_MAX_NUMBER_OF_PAGE; i++) {
-+		if (!ab->nss.tx_desc_paddr[i])
++		if (!ab->nss.tx_desc_vaddr[i])
 +			continue;
 +
 +		dma_free_coherent(ab->dev,
@@ -1774,6 +1900,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +				  ab->nss.tx_desc_vaddr[i],
 +				  ab->nss.tx_desc_paddr[i]);
 +		ab->nss.tx_desc_vaddr[i] = NULL;
++		ab->nss.tx_desc_paddr[i] = 0;
++		ab->nss.tx_desc_size[i] = 0;
 +	}
 +
 +	ath11k_dbg(ab, ATH11K_DBG_NSS, "allocated tx desc mem freed\n");
@@ -1794,6 +1922,11 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		if (alloc_size > WIFILI_NSS_MAX_MEM_PAGE_SIZE)
 +			alloc_size = WIFILI_NSS_MAX_MEM_PAGE_SIZE;
 +
++		if (curr_page_idx >= ATH11K_NSS_MAX_NUMBER_OF_PAGE) {
++			ath11k_warn(ab, "max page number reached while tx desc mem allocation\n");
++			return -EINVAL;
++		}
++
 +		ab->nss.tx_desc_vaddr[curr_page_idx] =
 +					dma_alloc_coherent(ab->dev, alloc_size,
 +							   &ab->nss.tx_desc_paddr[curr_page_idx],
@@ -1808,11 +1941,6 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		ath11k_dbg(ab, ATH11K_DBG_NSS,
 +			   "curr page %d, allocated %d, total allocated %d\n",
 +			   curr_page_idx, alloc_size, i + alloc_size);
-+
-+		if (curr_page_idx == ATH11K_NSS_MAX_NUMBER_OF_PAGE) {
-+			ath11k_warn(ab, "max page number reached while tx desc mem allocation\n");
-+			return -EINVAL;
-+		}
 +	}
 +	*page_idx = curr_page_idx;
 +	return 0;
@@ -1963,7 +2091,6 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	nss_wifili_msg_callback_t msg_cb;
 +	u32 target_type;
 +	u32 features = 0;
-+	nss_tx_status_t status;
 +	struct ath11k_dp *dp;
 +	int i, ret;
 +
@@ -1993,8 +2120,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	wim->hssm.lmac_rings_start_id = HAL_SRNG_RING_ID_LMAC1_ID_START;
 +
 +	/* fill TCL data/completion ring info */
-+	wim->num_tcl_data_rings = DP_TCL_NUM_RING_MAX;
-+	for (i = 0; i < DP_TCL_NUM_RING_MAX; i++) {
++	wim->num_tcl_data_rings = ab->hw_params.hal_params->num_tx_rings;
++	for (i = 0; i < wim->num_tcl_data_rings; i++) {
 +		ath11k_nss_fill_srng_info(ab, dp->tx_ring[i].tcl_data_ring.ring_id,
 +					  &wim->tcl_ring_info[i]);
 +		ath11k_nss_fill_srng_info(ab, dp->tx_ring[i].tcl_comp_ring.ring_id,
@@ -2029,8 +2156,9 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +
 +	ath11k_info(ab, "nss init soc nss if_num %d userpd_id %d\n", ab->nss.if_num, ab->userpd_id);
 +
-+	if (ab->nss.if_num >= NSS_MAX_NET_INTERFACES) {
++	if (ab->nss.if_num < 0 || ab->nss.if_num >= NSS_MAX_NET_INTERFACES) {
 +		ath11k_warn(ab, "NSS invalid interface\n");
++		ret = -EINVAL;
 +		goto free;
 +	}
 +
@@ -2042,12 +2170,14 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +
 +	if (!nss_contex) {
 +		ath11k_warn(ab, "nss wifili register failure\n");
-+		goto free;
++		ret = -ENODEV;
++		goto release_if;
 +	}
 +
 +	if (nss_cmn_get_state(nss_contex) != NSS_STATE_INITIALIZED) {
 +		ath11k_warn(ab, "nss state in default init state\n");
-+		goto free;
++		ret = -ENODEV;
++		goto unregister;
 +	}
 +
 +	/* The registered soc context is stored in ab, and will be used for
@@ -2063,26 +2193,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			 sizeof(struct nss_wifili_init_msg),
 +			 msg_cb, NULL);
 +
-+	reinit_completion(&ab->nss.complete);
-+
-+	/* Note: response is contention free during init sequence */
-+	ab->nss.response = ATH11K_NSS_MSG_ACK;
-+
-+	status = nss_wifili_tx_msg(nss_contex, wlmsg);
-+	if (status != NSS_TX_SUCCESS) {
-+		ath11k_warn(ab, "failure to send nss init msg\n");
-+		goto unregister;
-+	}
-+
-+	ret = wait_for_completion_timeout(&ab->nss.complete,
-+					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (!ret) {
-+		ath11k_warn(ab, "timeout while waiting for nss init msg response\n");
-+		goto unregister;
-+	}
-+
-+	/* Check if the response is success from the callback */
-+	if (ab->nss.response != ATH11K_NSS_MSG_ACK)
++	ret = ath11k_nss_cmd_sync(ab, wlmsg);
++	if (ret)
 +		goto unregister;
 +
 +	kfree(wlmsg);
@@ -2093,10 +2205,17 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +
 +unregister:
 +	nss_unregister_wifili_if(ab->nss.if_num);
++	synchronize_net();
++	goto free;
++release_if:
++	if (ab->nss.if_num != NSS_WIFILI_INTERNAL_INTERFACE)
++		nss_wifili_release_external_if(ab->nss.if_num);
 +free:
++	ab->nss.ctx = NULL;
++	ab->nss.if_num = -1;
 +	ath11k_nss_tx_desc_mem_free(ab);
 +	kfree(wlmsg);
-+	return -EINVAL;
++	return ret;
 +}
 +
 +static int ath11k_nss_stats_cfg(struct ath11k *ar, int nss_msg, int enable)
@@ -2160,7 +2279,6 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	struct nss_wifili_pdev_init_msg *pdevmsg;
 +	struct nss_wifili_msg *wlmsg = NULL;
 +	nss_wifili_msg_callback_t msg_cb;
-+	nss_tx_status_t status;
 +	int radio_if_num = -1;
 +	int refill_ring_id;
 +	int features = 0;
@@ -2218,32 +2336,9 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			 sizeof(struct nss_wifili_pdev_init_msg),
 +			 msg_cb, NULL);
 +
-+	reinit_completion(&ab->nss.complete);
-+
-+	/* Note: response is contention free during init sequence */
-+	ab->nss.response = ATH11K_NSS_MSG_ACK;
-+
-+	status = nss_wifili_tx_msg(ar->nss.ctx, wlmsg);
-+
-+	if (status != NSS_TX_SUCCESS) {
-+		ath11k_warn(ab, "nss send pdev msg tx error : %d\n", status);
-+		ret = -EINVAL;
++	ret = ath11k_nss_cmd_sync(ab, wlmsg);
++	if (ret)
 +		goto free;
-+	}
-+
-+	ret = wait_for_completion_timeout(&ab->nss.complete,
-+					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (!ret) {
-+		ath11k_warn(ab, "timeout while waiting for pdev init msg response\n");
-+		ret = -ETIMEDOUT;
-+		goto free;
-+	}
-+
-+	/* Check if the response is success from the callback */
-+	if (ab->nss.response != ATH11K_NSS_MSG_ACK) {
-+		ret = -EINVAL;
-+		goto free;
-+	}
 +
 +	kfree(wlmsg);
 +
@@ -2278,7 +2373,6 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +{
 +	struct nss_wifili_msg *wlmsg = NULL;
 +	nss_wifili_msg_callback_t msg_cb;
-+	nss_tx_status_t status;
 +	int ret;
 +
 +	wlmsg = kzalloc(sizeof(struct nss_wifili_msg), GFP_ATOMIC);
@@ -2293,32 +2387,9 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			 0,
 +			 msg_cb, NULL);
 +
-+	reinit_completion(&ab->nss.complete);
-+
-+	/* Note: response is contention free during init sequence */
-+	ab->nss.response = ATH11K_NSS_MSG_ACK;
-+
-+	status = nss_wifili_tx_msg(ab->nss.ctx, wlmsg);
-+
-+	if (status != NSS_TX_SUCCESS) {
-+		ath11k_warn(ab, "nss send start msg tx error %d\n", status);
-+		ret = -EINVAL;
++	ret = ath11k_nss_cmd_sync(ab, wlmsg);
++	if (ret)
 +		goto free;
-+	}
-+
-+	ret = wait_for_completion_timeout(&ab->nss.complete,
-+					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (!ret) {
-+		ath11k_warn(ab, "timeout while waiting for response for nss start msg\n");
-+		ret = -ETIMEDOUT;
-+		goto free;
-+	}
-+
-+	/* Check if the response is success from the callback */
-+	if (ab->nss.response != ATH11K_NSS_MSG_ACK) {
-+		ret = -EINVAL;
-+		goto free;
-+	}
 +
 +	/* NSS Start success */
 +	ret = 0;
@@ -2329,18 +2400,17 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	return ret;
 +}
 +
-+static void ath11k_nss_reset(struct ath11k_base *ab)
++static int ath11k_nss_reset(struct ath11k_base *ab)
 +{
 +	struct nss_wifili_msg *wlmsg = NULL;
 +	nss_wifili_msg_callback_t msg_cb;
-+	nss_tx_status_t status;
 +	int ret;
 +
 +	ath11k_dbg(ab, ATH11K_DBG_NSS, "NSS reset\n");
 +	wlmsg = kzalloc(sizeof(struct nss_wifili_msg), GFP_ATOMIC);
 +	if (!wlmsg) {
 +		ath11k_warn(ab, "mem allocation failure during nss reset\n");
-+		return;
++		return -ENOMEM;
 +	}
 +
 +	msg_cb = (nss_wifili_msg_callback_t)ath11k_nss_wifili_event_receive;
@@ -2351,44 +2421,26 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			 0,
 +			 msg_cb, NULL);
 +
-+	reinit_completion(&ab->nss.complete);
-+
-+	/* Note: response is contention free during deinit sequence */
-+	ab->nss.response = ATH11K_NSS_MSG_ACK;
-+
-+	status = nss_wifili_tx_msg(ab->nss.ctx, wlmsg);
-+
-+	/* Add a retry mechanism to reset nss until success */
-+	if (status != NSS_TX_SUCCESS) {
-+		ath11k_warn(ab, "nss send reset msg tx error %d\n", status);
++	ret = ath11k_nss_cmd_sync(ab, wlmsg);
++	if (ret)
 +		goto free;
-+	}
-+
-+	ret = wait_for_completion_timeout(&ab->nss.complete,
-+					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (!ret) {
-+		ath11k_warn(ab, "timeout while waiting for response for nss reset msg\n");
-+		goto free;
-+	}
-+
-+	/* Check if the response is success from the callback */
-+	if (ab->nss.response != ATH11K_NSS_MSG_ACK) {
-+		ath11k_warn(ab, "failure response during nss reset %d\n", ab->nss.response);
-+		goto free;
-+	}
 +
 +	/* Unregister wifili interface */
 +	nss_unregister_wifili_if(ab->nss.if_num);
++	synchronize_net();
++	ab->nss.ctx = NULL;
++	ab->nss.if_num = -1;
++	ab->nss.dma_active = false;
 +
 +free:
 +	kfree(wlmsg);
++	return ret;
 +}
 +
 +static int ath11k_nss_stop(struct ath11k_base *ab)
 +{
 +	struct nss_wifili_msg *wlmsg = NULL;
 +	nss_wifili_msg_callback_t msg_cb;
-+	nss_tx_status_t status;
 +	int ret;
 +
 +	ath11k_dbg(ab, ATH11K_DBG_NSS, "NSS stop\n");
@@ -2404,33 +2456,9 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			 0,
 +			 msg_cb, NULL);
 +
-+	reinit_completion(&ab->nss.complete);
-+
-+	/* Note: response is contention free during deinit sequence */
-+	ab->nss.response = ATH11K_NSS_MSG_ACK;
-+
-+	status = nss_wifili_tx_msg(ab->nss.ctx, wlmsg);
-+
-+	/* Add a retry mechanism to stop nss until success */
-+	if (status != NSS_TX_SUCCESS) {
-+		ath11k_warn(ab, "nss send stop msg tx error %d\n", status);
-+		ret = -EINVAL;
++	ret = ath11k_nss_cmd_sync(ab, wlmsg);
++	if (ret)
 +		goto free;
-+	}
-+
-+	ret = wait_for_completion_timeout(&ab->nss.complete,
-+					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (!ret) {
-+		ath11k_warn(ab, "timeout while waiting for response for nss stop msg\n");
-+		ret = -ETIMEDOUT;
-+		goto free;
-+	}
-+
-+	/* Check if the response is success from the callback */
-+	if (ab->nss.response != ATH11K_NSS_MSG_ACK) {
-+		ret = -EINVAL;
-+		goto free;
-+	}
 +
 +	/* NSS Stop success */
 +	ret = 0;
@@ -2445,7 +2473,6 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	struct nss_wifili_pdev_deinit_msg *deinit;
 +	struct nss_wifili_msg *wlmsg = NULL;
 +	nss_wifili_msg_callback_t msg_cb;
-+	nss_tx_status_t status;
 +	int dyn_if_type;
 +	int ret;
 +
@@ -2470,31 +2497,9 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +			 sizeof(struct nss_wifili_pdev_deinit_msg),
 +			 msg_cb, NULL);
 +
-+	reinit_completion(&ab->nss.complete);
-+
-+	/* Note: response is contention free during deinit sequence */
-+	ab->nss.response = ATH11K_NSS_MSG_ACK;
-+
-+	status = nss_wifili_tx_msg(ar->nss.ctx, wlmsg);
-+	if (status != NSS_TX_SUCCESS) {
-+		ath11k_warn(ab, "nss send pdev deinit msg tx error %d\n", status);
-+		ret = -EINVAL;
++	ret = ath11k_nss_cmd_sync(ab, wlmsg);
++	if (ret)
 +		goto free;
-+	}
-+
-+	ret = wait_for_completion_timeout(&ab->nss.complete,
-+					  msecs_to_jiffies(ATH11K_NSS_MSG_TIMEOUT_MS));
-+	if (!ret) {
-+		ath11k_warn(ab, "timeout while waiting for pdev deinit msg response\n");
-+		ret = -ETIMEDOUT;
-+		goto free;
-+	}
-+
-+	/* Check if the response is success from the callback */
-+	if (ab->nss.response != ATH11K_NSS_MSG_ACK) {
-+		ret = -EINVAL;
-+		goto free;
-+	}
 +
 +	/* pdev deinit msg success, dealloc, deregister and return */
 +	ret = 0;
@@ -2510,18 +2515,28 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +{
 +	int i, ret;
 +
-+	if (!ab->nss.enabled)
++	lockdep_assert_held(&ab->core_lock);
++
++	if (!ab->nss.dma_active)
 +		return 0;
 +
-+	ath11k_nss_stop(ab);
++	ret = ath11k_nss_stop(ab);
++	if (ret)
++		ath11k_nss_fail_stop(ab, "STOP", ret);
 +
 +	for (i = 0; i < ab->num_radios ; i++) {
++		if (!test_bit(i, &ab->nss.pdev_mask))
++			continue;
++
 +		ret = ath11k_nss_pdev_deinit(ab, i);
 +		if (ret)
-+			ath11k_warn(ab, "failure during pdev%d deinit\n", i);
++			ath11k_nss_fail_stop(ab, "PDEV_DEINIT", ret);
++		__clear_bit(i, &ab->nss.pdev_mask);
 +	}
 +
-+	ath11k_nss_reset(ab);
++	ret = ath11k_nss_reset(ab);
++	if (ret)
++		ath11k_nss_fail_stop(ab, "RESET", ret);
 +	ath11k_nss_tx_desc_mem_free(ab);
 +	ath11k_dbg(ab, ATH11K_DBG_NSS, "NSS Teardown Complete\n");
 +
@@ -2533,6 +2548,11 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	int i;
 +	int ret = 0;
 +	u32 target_type;
++
++	lockdep_assert_held(&ab->core_lock);
++
++	if (ab->nss.dma_active)
++		ath11k_nss_fail_stop(ab, "setup while active", -EBUSY);
 +
 +	if (!ab->nss.enabled)
 +		return 0;
@@ -2550,6 +2570,10 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +
 +	/* Initialize completion for verifying NSS message response */
 +	init_completion(&ab->nss.complete);
++	init_completion(&ab->nss.cmd_complete);
++	spin_lock_init(&ab->nss.cmd_lock);
++	ab->nss.cmd_pending = false;
++	ab->nss.pdev_mask = 0;
 +
 +	/* Setup common resources for NSS */
 +	ret = ath11k_nss_init(ab);
@@ -2563,42 +2587,37 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +		ret = ath11k_nss_pdev_init(ab, i);
 +		if (ret) {
 +			ath11k_warn(ab, "NSS PDEV %d Initialization Failed :%d\n", i, ret);
-+			goto pdev_deinit;
++			goto teardown;
 +		}
++		__set_bit(i, &ab->nss.pdev_mask);
 +	}
 +
 +	/* Set the NSS statemachine to start */
 +	ret = ath11k_nss_start(ab);
 +	if (ret) {
 +		ath11k_warn(ab, "NSS Start Failed : %d\n", ret);
-+		goto pdev_deinit;
++		goto teardown;
 +	}
 +
 +	/* Default nexthop interface is set to ETH RX */
 +	ret = nss_wifi_vdev_base_set_next_hop(ab->nss.ctx, NSS_ETH_RX_INTERFACE);
 +	if (ret != NSS_TX_SUCCESS) {
 +		ath11k_warn(ab, "Failure to set default next hop : %d\n", ret);
-+		goto stop;
++		ret = -EIO;
++		goto teardown;
 +	}
 +
 +	ath11k_dbg(ab, ATH11K_DBG_NSS, "NSS Setup Complete\n");
 +	return ret;
 +
-+stop:
-+	ath11k_nss_stop(ab);
-+
-+pdev_deinit:
-+	for (i -= 1; i >= 0; i--)
-+		ath11k_nss_pdev_deinit(ab, i);
-+
-+	ath11k_nss_reset(ab);
-+	ath11k_nss_tx_desc_mem_free(ab);
++teardown:
++	ath11k_nss_teardown(ab);
 +fail:
 +	return ret;
 +}
 --- /dev/null
 +++ b/drivers/net/wireless/ath/ath11k/nss.h
-@@ -0,0 +1,307 @@
+@@ -0,0 +1,315 @@
 +/* SPDX-License-Identifier: BSD-3-Clause-Clear */
 +/*
 + * Copyright (c) 2020 The Linux Foundation. All rights reserved.
@@ -2714,11 +2733,11 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	u64 last_rx;
 +	u64 last_ack;
 +	u32 tx_packets;
-+	u32 tx_bytes;
++	u64 tx_bytes;
 +	u32 tx_retries;
 +	u32 tx_failed;
 +	u32 rx_packets;
-+	u32 rx_bytes;
++	u64 rx_bytes;
 +	u32 rx_dropped;
 +	u32 last_rxdrop;
 +	struct rate_info rxrate;
@@ -2782,9 +2801,17 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	bool debug_mode;
 +	/* Completion to nss message response */
 +	struct completion complete;
-+	/* Response to nss messages are stored here on msg callback
-+	* used only in contention free messages during init */
++	/* Lifecycle request state, protected by cmd_lock. */
++	struct completion cmd_complete;
++	spinlock_t cmd_lock;
++	unsigned long cmd_cookie;
++	u32 cmd_type;
++	u32 cmd_error;
 +	int response;
++	bool cmd_pending;
++	/* DMA ownership and initialized pdevs, protected by core_lock. */
++	bool dma_active;
++	unsigned long pdev_mask;
 +	/* Below is used for identifying allocated tx descriptors */
 +	dma_addr_t tx_desc_paddr[ATH11K_NSS_MAX_NUMBER_OF_PAGE];
 +	uint32_t * tx_desc_vaddr[ATH11K_NSS_MAX_NUMBER_OF_PAGE];

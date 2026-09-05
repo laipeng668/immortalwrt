@@ -97,7 +97,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  		break;
  	case NL80211_IFTYPE_MONITOR:
  		if (local->virt_monitors == 0)
-@@ -1073,6 +1076,7 @@ static bool ieee80211_iftype_supports_hd
+@@ -1088,6 +1091,7 @@ static bool ieee80211_iftype_supports_hd
  	switch (iftype) {
  	/* P2P GO and client are mapped to AP/STATION types */
  	case NL80211_IFTYPE_AP:
@@ -105,7 +105,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	case NL80211_IFTYPE_STATION:
  		return true;
  	default:
-@@ -1127,7 +1131,8 @@ static void ieee80211_set_vif_encap_ops(
+@@ -1142,7 +1146,8 @@ static void ieee80211_set_vif_encap_ops(
  	struct ieee80211_sub_if_data *bss = sdata;
  	bool enabled;
  
@@ -115,7 +115,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  		if (!sdata->bss)
  			return;
  
-@@ -1506,7 +1511,6 @@ int ieee80211_do_open(struct wireless_de
+@@ -1521,7 +1526,6 @@ int ieee80211_do_open(struct wireless_de
  				(sdata->u.mntr.flags & MONITOR_FLAG_ACTIVE);
  	switch (sdata->vif.type) {
  	case NL80211_IFTYPE_AP_VLAN:
@@ -123,7 +123,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  		if (sdata->bss->active) {
  			struct ieee80211_link_data *link;
  
-@@ -1515,6 +1519,14 @@ int ieee80211_do_open(struct wireless_de
+@@ -1530,6 +1534,14 @@ int ieee80211_do_open(struct wireless_de
  			}
  
  			netif_carrier_on(dev);

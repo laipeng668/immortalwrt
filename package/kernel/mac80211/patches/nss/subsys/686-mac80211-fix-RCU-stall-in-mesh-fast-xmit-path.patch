@@ -83,7 +83,7 @@ Signed-off-by: P Praneesh <quic_ppranees@quicinc.com>
  static int ieee80211_get_mpath(struct wiphy *wiphy, struct net_device *dev,
 --- a/net/mac80211/mesh.h
 +++ b/net/mac80211/mesh.h
-@@ -127,7 +127,7 @@ struct mesh_path {
+@@ -129,7 +129,7 @@ struct mesh_path {
  	unsigned long fast_tx_check;
  	bool is_root;
  	bool is_gate;

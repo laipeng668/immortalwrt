@@ -211,7 +211,7 @@
  	C2S(NL80211_CMD_SET_HW_TIMESTAMP)
  	C2S(NL80211_CMD_LINKS_REMOVED)
  	C2S(NL80211_CMD_SET_TID_TO_LINK_MAPPING)
-@@ -3875,6 +3876,35 @@ static void nl80211_port_authorized(stru
+@@ -3875,6 +3876,36 @@ static void nl80211_port_authorized(stru
  	wpa_supplicant_event(drv->ctx, EVENT_PORT_AUTHORIZED, &event);
  }
  
@@ -230,7 +230,8 @@
 +	union wpa_event_data ed;
 +	int i;
 +
-+	if (!tb[NL80211_ATTR_HE_MUEDCA_PARAMS])
++	if (!tb[NL80211_ATTR_HE_MUEDCA_PARAMS] ||
++	    nla_len(tb[NL80211_ATTR_HE_MUEDCA_PARAMS]) < sizeof(*rx_muedca_params))
 +		return;
 +
 +	rx_muedca_params = nla_data(tb[NL80211_ATTR_HE_MUEDCA_PARAMS]);
@@ -275,7 +276,7 @@
  	NL80211_CMD_ASSOC_MLO_RECONF,
  	NL80211_CMD_EPCS_CFG,
  
-+	NL80211_CMD_UPDATE_HE_MUEDCA_PARAMS,
++	NL80211_CMD_UPDATE_HE_MUEDCA_PARAMS = 168,
  	/* add new commands above here */
  
  	/* used to define NL80211_CMD_MAX below */
@@ -293,7 +294,7 @@
  
  	NL80211_ATTR_ASSOC_MLD_EXT_CAPA_OPS,
  
-+	NL80211_ATTR_HE_MUEDCA_PARAMS,
++	NL80211_ATTR_HE_MUEDCA_PARAMS = 367,
  	/* add attributes here, update the policy in nl80211.c */
  
  	__NL80211_ATTR_AFTER_LAST,

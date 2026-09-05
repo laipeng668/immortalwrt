@@ -58,7 +58,7 @@ Subject: [PATCH]
  static const struct dmi_system_id ath11k_pm_quirk_table[] = {
 --- a/drivers/net/wireless/ath/ath11k/hw.c
 +++ b/drivers/net/wireless/ath/ath11k/hw.c
-@@ -1043,6 +1043,7 @@ static void ath11k_hw_wcn6855_reo_setup(
+@@ -1057,6 +1057,7 @@ static void ath11k_hw_wcn6855_reo_setup(
  
  static void ath11k_hw_ipq5018_reo_setup(struct ath11k_base *ab)
  {
@@ -66,7 +66,7 @@ Subject: [PATCH]
  	u32 reo_base = HAL_SEQ_WCSS_UMAC_REO_REG;
  	u32 val;
  
-@@ -1056,11 +1057,14 @@ static void ath11k_hw_ipq5018_reo_setup(
+@@ -1070,11 +1071,14 @@ static void ath11k_hw_ipq5018_reo_setup(
  		HAL_HASH_ROUTING_RING_SW3 << 24 |
  		HAL_HASH_ROUTING_RING_SW4 << 28;
  
@@ -82,7 +82,7 @@ Subject: [PATCH]
  		FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_LIST_ENABLE, 1) |
  		FIELD_PREP(HAL_REO1_GEN_ENABLE_AGING_FLUSH_ENABLE, 1);
  	ath11k_hif_write32(ab, reo_base + HAL_REO1_GEN_ENABLE, val);
-@@ -1074,6 +1078,10 @@ static void ath11k_hw_ipq5018_reo_setup(
+@@ -1088,6 +1092,10 @@ static void ath11k_hw_ipq5018_reo_setup(
  	ath11k_hif_write32(ab, reo_base + HAL_REO1_AGING_THRESH_IX_3(ab),
  			   HAL_DEFAULT_REO_TIMEOUT_USEC);
  
@@ -95,7 +95,7 @@ Subject: [PATCH]
  	ath11k_hif_write32(ab, reo_base + HAL_REO1_DEST_RING_CTRL_IX_1,
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -4253,6 +4253,8 @@ static int ath11k_nss_get_target_type(st
+@@ -4435,6 +4435,8 @@ static int ath11k_nss_get_target_type(st
  		return ATH11K_WIFILI_TARGET_TYPE_QCN9074;
  	case ATH11K_HW_IPQ5018_HW10:
  		return ATH11K_WIFILI_TARGET_TYPE_QCA5018;
@@ -104,7 +104,7 @@ Subject: [PATCH]
  	default:
  		ath11k_warn(ab, "NSS Offload not supported for this HW\n");
  		return ATH11K_WIFILI_TARGET_TYPE_UNKNOWN;
-@@ -4267,6 +4269,7 @@ static int ath11k_nss_get_interface_type
+@@ -4449,6 +4451,7 @@ static int ath11k_nss_get_interface_type
  	case ATH11K_HW_IPQ5018_HW10:
  		return NSS_WIFILI_INTERNAL_INTERFACE;
  	case ATH11K_HW_QCN9074_HW10:

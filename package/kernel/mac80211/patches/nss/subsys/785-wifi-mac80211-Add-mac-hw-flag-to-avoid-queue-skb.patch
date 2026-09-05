@@ -16,10 +16,17 @@ access.
 
 Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
 ---
- include/net/mac80211.h                |  1 +
- net/mac80211/debugfs.c                |  1 +
- net/mac80211/tx.c                     | 18 ++++++++++++++----
- 4 files changed, 17 insertions(+), 4 deletions(-)
+ include/net/mac80211.h     |    4 ++
+ net/mac80211/debugfs.c     |    1 +
+ net/mac80211/tx.c          |   23 +++++++++----
+ net/mac80211/cfg.c         |    3 ++
+ net/mac80211/rx.c          |    3 ++
+ net/mac80211/sta_info.c    |   75 ++++++++++++++++++++++++++------------------
+ net/mac80211/debugfs_sta.c |    4 ++
+ net/mac80211/mesh.c        |    3 +-
+ net/mac80211/util.c        |    3 ++
+ net/mac80211/ht.c          |   54 +++++++++++++++++---------------
+ 10 files changed, 109 insertions(+), 64 deletions(-)
 
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
@@ -27,7 +34,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
   *
   * @IEEE80211_HW_SUPPORTS_TID_CLASS_OFFLOAD: Hardware suports tid calssification offload.
   *
-+ * @IEE80211_HW_HAS_TX_QUEUE: Hardware/drivers has tx queue, does skb queuing itself,
++ * @IEEE80211_HW_HAS_TX_QUEUE: Hardware/drivers has tx queue, does skb queuing itself,
 + *	the stack will not do tx queuing.
 + *
   * @NUM_IEEE80211_HW_FLAGS: number of hardware flags, used for sizing arrays
@@ -53,27 +60,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -1617,6 +1617,9 @@ int ieee80211_txq_setup_flows(struct iee
- 	bool supp_vht = false;
- 	enum nl80211_band band;
- 
-+	if (ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
-+		return 0;
-+
- 	ret = fq_init(fq, 4096);
- 	if (ret)
- 		return ret;
-@@ -1663,6 +1666,9 @@ void ieee80211_txq_teardown_flows(struct
- {
- 	struct fq *fq = &local->fq;
- 
-+	if (ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
-+		return;
-+
- 	kvfree(local->cvars);
- 	local->cvars = NULL;
- 
-@@ -1679,7 +1685,8 @@ static bool ieee80211_queue_skb(struct i
+@@ -1679,7 +1679,8 @@ static bool ieee80211_queue_skb(struct i
  	struct ieee80211_vif *vif;
  	struct txq_info *txqi;
  
@@ -83,7 +70,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  		return false;
  
  	if (sdata->vif.type == NL80211_IFTYPE_AP_VLAN)
-@@ -4445,7 +4452,8 @@ void __ieee80211_subif_start_xmit(struct
+@@ -4445,7 +4446,8 @@ void __ieee80211_subif_start_xmit(struct
  		}
  	}
  
@@ -93,12 +80,14 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  	ieee80211_aggr_check(sdata, sta, skb);
  
  	if (sta) {
-@@ -4801,8 +4809,10 @@ static void ieee80211_8023_xmit(struct i
+@@ -4801,8 +4803,12 @@ static void ieee80211_8023_xmit(struct i
  	bool multicast;
  	u8 tid;
  
 -	queue = ieee80211_select_queue(sdata, sta, skb);
 -	skb_set_queue_mapping(skb, queue);
++	queue = skb_get_queue_mapping(skb);
++
 +	if (unlikely(!ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))) {
 +		queue = ieee80211_select_queue(sdata, sta, skb);
 +		skb_set_queue_mapping(skb, queue);
@@ -106,7 +95,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  
  	multicast = is_multicast_ether_addr(ra);
  
-@@ -6799,9 +6809,12 @@ int ieee80211_tx_control_port(struct wip
+@@ -6799,9 +6805,12 @@ int ieee80211_tx_control_port(struct wip
  	}
  
  	if (!IS_ERR(sta)) {
@@ -123,7 +112,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  		 * for MLO STA, the SA should be the AP MLD address, but
 --- a/net/mac80211/cfg.c
 +++ b/net/mac80211/cfg.c
-@@ -5413,6 +5413,9 @@ static int ieee80211_get_txq_stats(struc
+@@ -5414,6 +5414,9 @@ static int ieee80211_get_txq_stats(struc
  	struct ieee80211_sub_if_data *sdata;
  	int ret = 0;
  
@@ -133,20 +122,6 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  	spin_lock_bh(&local->fq.lock);
  
  	if (wdev) {
---- a/net/mac80211/main.c
-+++ b/net/mac80211/main.c
-@@ -1037,7 +1037,10 @@ struct ieee80211_hw *ieee80211_alloc_hw_
- 		atomic_set(&local->agg_queue_stop[i], 0);
- 	}
- 	tasklet_setup(&local->tx_pending_tasklet, ieee80211_tx_pending);
--	tasklet_setup(&local->wake_txqs_tasklet, ieee80211_wake_txqs);
-+
-+	if (!ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
-+		tasklet_setup(&local->wake_txqs_tasklet, ieee80211_wake_txqs);
-+
- 	tasklet_setup(&local->tasklet, ieee80211_tasklet_handler);
- 
- 	skb_queue_head_init(&local->skb_queue);
 --- a/net/mac80211/rx.c
 +++ b/net/mac80211/rx.c
 @@ -1703,6 +1703,9 @@ static void sta_ps_start(struct sta_info
@@ -247,16 +222,16 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  free:
  	sta_info_free_link(&sta->deflink);
  #ifdef CPTCFG_MAC80211_MESH
-@@ -1112,6 +1119,9 @@ static unsigned long ieee80211_tids_for_
+@@ -1119,6 +1126,9 @@ static void __sta_info_recalc_tim(struct
+ 	int ac;
+ 	u16 id = sta->sta.aid;
  
- static void __sta_info_recalc_tim(struct sta_info *sta, bool ignore_pending)
- {
-+	if (ieee80211_hw_check(&sta->sdata->local->hw, HAS_TX_QUEUE))
++	if (ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
 +		return;
 +
- 	struct ieee80211_local *local = sta->local;
- 	struct ps_data *ps;
- 	bool indicate_tim = false;
+ 	if (sta->sdata->vif.type == NL80211_IFTYPE_AP ||
+ 	    sta->sdata->vif.type == NL80211_IFTYPE_AP_VLAN) {
+ 		if (WARN_ON_ONCE(!sta->sdata->bss))
 @@ -1859,11 +1869,13 @@ void ieee80211_sta_ps_deliver_wakeup(str
  	if (!ieee80211_hw_check(&local->hw, AP_LINK_PS))
  		drv_sta_notify(local, sdata, STA_NOTIFY_AWAKE, &sta->sta);
@@ -275,22 +250,13 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  	}
  
  	skb_queue_head_init(&pending);
-@@ -2278,6 +2290,9 @@ ieee80211_sta_ps_deliver_response(struct
- 		 * TIM recalculation.
- 		 */
- 
-+		if (!sta->sta.txq[0])
-+			return;
-+
- 		for (tid = 0; tid < ARRAY_SIZE(sta->sta.txq); tid++) {
- 			if (!sta->sta.txq[tid] ||
- 			    !(driver_release_tids & BIT(tid)) ||
-@@ -2750,7 +2765,7 @@ static void sta_set_tidstats(struct sta_
+@@ -2750,7 +2762,8 @@ static void sta_set_tidstats(struct sta_
  			link_sta_info->status_stats.msdu_failed[tid];
  	}
  
 -	if (link_id < 0 && tid < IEEE80211_NUM_TIDS) {
-+	if (!ieee80211_hw_check(&local->hw, HAS_TX_QUEUE) && link_id < 0 && tid < IEEE80211_NUM_TIDS) {
++	if (link_id < 0 && tid < IEEE80211_NUM_TIDS &&
++	    !ieee80211_hw_check(&local->hw, HAS_TX_QUEUE)) {
  		spin_lock_bh(&local->fq.lock);
  
  		tidstats->filled |= BIT(NL80211_TID_STATS_TXQ_STATS);
@@ -300,7 +266,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  		       bufsz + buf - p,
  		       "tid ac backlog-bytes backlog-packets new-flows drops marks overlimit collisions tx-bytes tx-packets flags\n");
  
-+	if (!ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
++	if (ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
 +		goto skip_txq_info;
 +
  	for (i = 0; i < ARRAY_SIZE(sta->sta.txq); i++) {
@@ -328,15 +294,80 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  	if ((meshhdr->flags & MESH_FLAGS_AE) == MESH_FLAGS_AE_A5_A6) {
 --- a/net/mac80211/util.c
 +++ b/net/mac80211/util.c
-@@ -485,10 +485,8 @@ static void __ieee80211_wake_queue(struc
+@@ -485,6 +485,9 @@ static void __ieee80211_wake_queue(struc
  	 * release someone's lock, but it is fine because all the callers of
  	 * __ieee80211_wake_queue call it right before releasing the lock.
  	 */
--	if (reason == IEEE80211_QUEUE_STOP_REASON_DRIVER)
-+	if (!ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
++	if (ieee80211_hw_check(&local->hw, HAS_TX_QUEUE))
++		return;
++
+ 	if (reason == IEEE80211_QUEUE_STOP_REASON_DRIVER)
  		tasklet_schedule(&local->wake_txqs_tasklet);
--	else
--		_ieee80211_wake_txqs(local, flags);
- }
+ 	else
+--- a/net/mac80211/ht.c
++++ b/net/mac80211/ht.c
+@@ -362,35 +362,39 @@ void ieee80211_ba_session_work(struct wi
  
- void ieee80211_wake_queue_by_reason(struct ieee80211_hw *hw, int queue,
+ 		tid_tx = sta->ampdu_mlme.tid_start_tx[tid];
+ 		if (!blocked && tid_tx) {
+-			struct txq_info *txqi = to_txq_info(sta->sta.txq[tid]);
+-			struct ieee80211_sub_if_data *sdata =
+-				vif_to_sdata(txqi->txq.vif);
+-			struct fq *fq = &sdata->local->fq;
+-
+-			spin_lock_bh(&fq->lock);
+-
+-			/* Allow only frags to be dequeued */
+-			set_bit(IEEE80211_TXQ_STOP, &txqi->flags);
+-
+-			if (!skb_queue_empty(&txqi->frags)) {
+-				/* Fragmented Tx is ongoing, wait for it to
+-				 * finish. Reschedule worker to retry later.
+-				 */
++			if (sta->sta.txq[tid]) {
++				struct txq_info *txqi =
++					to_txq_info(sta->sta.txq[tid]);
++				struct ieee80211_sub_if_data *sdata =
++					vif_to_sdata(txqi->txq.vif);
++				struct fq *fq = &sdata->local->fq;
++
++				spin_lock_bh(&fq->lock);
++
++				/* Allow only frags to be dequeued */
++				set_bit(IEEE80211_TXQ_STOP, &txqi->flags);
++
++				if (!skb_queue_empty(&txqi->frags)) {
++					/* Fragmented Tx is ongoing, wait for it to
++					 * finish. Reschedule worker to retry later.
++					 */
++
++					spin_unlock_bh(&fq->lock);
++					spin_unlock_bh(&sta->lock);
++
++					/* Give the task working on the txq a chance
++					 * to send out the queued frags
++					 */
++					synchronize_net();
++
++					wiphy_work_queue(sdata->local->hw.wiphy,
++							 work);
++					return;
++				}
+ 
+ 				spin_unlock_bh(&fq->lock);
+-				spin_unlock_bh(&sta->lock);
+-
+-				/* Give the task working on the txq a chance
+-				 * to send out the queued frags
+-				 */
+-				synchronize_net();
+-
+-				wiphy_work_queue(sdata->local->hw.wiphy, work);
+-				return;
+ 			}
+ 
+-			spin_unlock_bh(&fq->lock);
+-
+ 			/*
+ 			 * Assign it over to the normal tid_tx array
+ 			 * where it "goes live".

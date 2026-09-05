@@ -16,14 +16,14 @@ Signed-off-by: Pradeep Kumar Chitrapu <pradeepc@codeaurora.org>
 Signed-off-by: Sriram R <srirrama@codeaurora.org>
 Signed-off-by: P Praneesh <ppranees@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/dp_tx.c | 12 +++++++++++-
- drivers/net/wireless/ath/ath11k/hal.c   | 60 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--
- drivers/net/wireless/ath/ath11k/hal.h   |  6 +++++-
+ drivers/net/wireless/ath/ath11k/dp_tx.c |   12 ++++++
+ drivers/net/wireless/ath/ath11k/hal.c   |   60 ++++++++++++++++++++++++++++++-
+ drivers/net/wireless/ath/ath11k/hal.h   |    6 +++
  3 files changed, 74 insertions(+), 4 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/dp_tx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_tx.c
-@@ -770,6 +770,7 @@ void ath11k_dp_tx_completion_handler(str
+@@ -775,6 +775,7 @@ void ath11k_dp_tx_completion_handler(str
  	struct sk_buff *msdu;
  	struct hal_tx_status ts = {};
  	struct dp_tx_ring *tx_ring = &dp->tx_ring[ring_id];
@@ -31,7 +31,7 @@ Signed-off-by: P Praneesh <ppranees@codeaurora.org>
  	u32 *desc;
  	u32 msdu_id;
  	u8 mac_id;
-@@ -778,9 +779,18 @@ void ath11k_dp_tx_completion_handler(str
+@@ -783,9 +784,18 @@ void ath11k_dp_tx_completion_handler(str
  
  	ath11k_hal_srng_access_begin(ab, status_ring);
  
@@ -93,7 +93,7 @@ Signed-off-by: P Praneesh <ppranees@codeaurora.org>
 +void ath11k_hal_srng_dst_invalidate_entry(struct ath11k_base *ab,
 +					struct hal_srng *srng, int entries)
 +{
-+	u32 *desc;
++	dma_addr_t paddr;
 +	u32 tp, hp;
 +
 +	lockdep_assert_held(&srng->lock);
@@ -104,19 +104,19 @@ Signed-off-by: P Praneesh <ppranees@codeaurora.org>
 +	tp = srng->u.dst_ring.tp;
 +	hp = srng->u.dst_ring.cached_hp;
 +
-+	desc = srng->ring_base_vaddr + tp;
++	paddr = srng->ring_base_paddr + tp * sizeof(*srng->ring_base_vaddr);
 +	if (hp > tp) {
-+		dma_sync_single_for_cpu(ab->dev, virt_to_phys(desc),
++		dma_sync_single_for_cpu(ab->dev, paddr,
 +				entries * srng->entry_size * sizeof(u32),
 +				DMA_FROM_DEVICE);
 +	} else {
 +		entries = srng->ring_size - tp;
-+		dma_sync_single_for_cpu(ab->dev, virt_to_phys(desc),
++		dma_sync_single_for_cpu(ab->dev, paddr,
 +				entries * sizeof(u32),
 +				DMA_FROM_DEVICE);
 +
 +		entries = hp;
-+		dma_sync_single_for_cpu(ab->dev, virt_to_phys(srng->ring_base_vaddr),
++		dma_sync_single_for_cpu(ab->dev, srng->ring_base_paddr,
 +				entries * sizeof(u32),
 +				DMA_FROM_DEVICE);
 +	}

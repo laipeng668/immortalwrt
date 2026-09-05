@@ -59,7 +59,7 @@ Subject: [PATCH]
  ath11k-$(CPTCFG_ATH11K_THERMAL) += thermal.o
 --- a/drivers/net/wireless/ath/ath11k/debugfs.c
 +++ b/drivers/net/wireless/ath/ath11k/debugfs.c
-@@ -1753,7 +1753,9 @@ int ath11k_debugfs_register(struct ath11
+@@ -1754,7 +1754,9 @@ int ath11k_debugfs_register(struct ath11
  	snprintf(buf, 100, "../../ath11k/%pd2", ar->debug.debugfs_pdev);
  	debugfs_create_symlink("ath11k", ar->hw->wiphy->debugfsdir, buf);
  
@@ -81,7 +81,7 @@ Subject: [PATCH]
  
  static inline u32 ath11k_he_tones_in_ru_to_nl80211_he_ru_alloc(u16 ru_tones)
  {
-@@ -686,6 +688,7 @@ static const struct file_operations fops
+@@ -688,6 +690,7 @@ static const struct file_operations fops
  	.llseek = default_llseek,
  };
  
@@ -89,7 +89,7 @@ Subject: [PATCH]
  static int
  ath11k_dbg_sta_open_htt_peer_stats(struct inode *inode, struct file *file)
  {
-@@ -757,6 +760,7 @@ static const struct file_operations fops
+@@ -759,6 +762,7 @@ static const struct file_operations fops
  	.owner = THIS_MODULE,
  	.llseek = default_llseek,
  };
@@ -97,7 +97,7 @@ Subject: [PATCH]
  
  static ssize_t ath11k_dbg_sta_write_peer_pktlog(struct file *file,
  						const char __user *buf,
-@@ -1041,6 +1045,7 @@ static const struct file_operations fops
+@@ -1043,6 +1047,7 @@ static const struct file_operations fops
  	.llseek = default_llseek,
  };
  
@@ -105,7 +105,7 @@ Subject: [PATCH]
  static ssize_t
  ath11k_write_htt_peer_stats_reset(struct file *file,
  				  const char __user *user_buf,
-@@ -1100,6 +1105,7 @@ static const struct file_operations fops
+@@ -1102,6 +1107,7 @@ static const struct file_operations fops
  	.owner = THIS_MODULE,
  	.llseek = default_llseek,
  };
@@ -113,7 +113,7 @@ Subject: [PATCH]
  
  static ssize_t ath11k_dbg_sta_read_peer_ps_state(struct file *file,
  						 char __user *user_buf,
-@@ -1246,8 +1252,10 @@ void ath11k_debugfs_sta_op_add(struct ie
+@@ -1248,8 +1254,10 @@ void ath11k_debugfs_sta_op_add(struct ie
  				    &fops_reset_rx_stats);
  	}
  
@@ -124,7 +124,7 @@ Subject: [PATCH]
  
  	debugfs_create_file("peer_pktlog", 0644, dir, sta,
  			    &fops_peer_pktlog);
-@@ -1257,10 +1265,12 @@ void ath11k_debugfs_sta_op_add(struct ie
+@@ -1259,10 +1267,12 @@ void ath11k_debugfs_sta_op_add(struct ie
  	debugfs_create_file("addba_resp", 0200, dir, sta, &fops_addba_resp);
  	debugfs_create_file("delba", 0200, dir, sta, &fops_delba);
  
@@ -139,7 +139,7 @@ Subject: [PATCH]
  	if (test_bit(WMI_TLV_SERVICE_CFR_CAPTURE_SUPPORT,
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1714,8 +1714,10 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1716,8 +1716,10 @@ ath11k_update_per_peer_tx_stats(struct a
  		peer_stats->mu_pos   = mu_pos;
  		peer_stats->ru_tones = arsta->txrate.he_ru_alloc;
  
@@ -150,7 +150,7 @@ Subject: [PATCH]
  	}
  
  	usr_stats->rate_stats_updated = true;
-@@ -2161,7 +2163,9 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
+@@ -2162,7 +2164,9 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
  		ath11k_htt_pull_ppdu_stats(ab, skb);
  		break;
  	case HTT_T2H_MSG_TYPE_EXT_STATS_CONF:
@@ -172,7 +172,7 @@ Subject: [PATCH]
  #include "hw.h"
  #include "peer.h"
  #include "mac.h"
-@@ -547,7 +549,9 @@ static void ath11k_dp_tx_cache_peer_stat
+@@ -552,7 +554,9 @@ static void ath11k_dp_tx_cache_peer_stat
  void ath11k_dp_tx_update_txcompl(struct ath11k *ar, struct hal_tx_status *ts)
  {
  	struct ath11k_base *ab = ar->ab;
@@ -182,7 +182,7 @@ Subject: [PATCH]
  	enum hal_tx_rate_stats_pkt_type pkt_type;
  	enum hal_tx_rate_stats_sgi sgi;
  	enum hal_tx_rate_stats_bw bw;
-@@ -636,8 +640,10 @@ void ath11k_dp_tx_update_txcompl(struct
+@@ -641,8 +645,10 @@ void ath11k_dp_tx_update_txcompl(struct
  			ath11k_mac_he_ru_tones_to_nl80211_he_ru_alloc(ru_tones);
  	}
  
@@ -195,7 +195,7 @@ Subject: [PATCH]
  	spin_unlock_bh(&ab->base_lock);
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -10772,7 +10772,7 @@ static const struct ieee80211_ops ath11k
+@@ -10753,7 +10753,7 @@ static const struct ieee80211_ops ath11k
  	.set_wakeup			= ath11k_wow_op_set_wakeup,
  #endif
  

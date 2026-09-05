@@ -1,26 +1,23 @@
 From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: 
-Roc Lai <laipeng668@qq.com>
-Date: 
-2026-09-02 06:11:20 +0800
-Subject: [PATCH] 
-999-233-ath11k-Disable-rx_header-tlv-for-2K-SKB
+From: Roc Lai <laipeng668@qq.com>
+Date: 2026-09-02 06:11:20 +0800
+Subject: [PATCH] 999-233-ath11k-Disable-rx_header-tlv-for-2K-SKB
 
 ---
- drivers/net/wireless/ath/ath11k/debugfs.c |   2 ++
- drivers/net/wireless/ath/ath11k/dp.h      |  82 +++++++++++++++++++++++++++++++++++++++++++++++--
- drivers/net/wireless/ath/ath11k/dp_rx.c   | 195 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++--------
- drivers/net/wireless/ath/ath11k/dp_tx.c   |  23 ++++++++++++++
- drivers/net/wireless/ath/ath11k/hw.c      | 252 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----
- drivers/net/wireless/ath/ath11k/hw.h      |  20 ++++++++++++
- drivers/net/wireless/ath/ath11k/mac.c     |   1 +
- drivers/net/wireless/ath/ath11k/nss.c     |   2 +-
- drivers/net/wireless/ath/ath11k/rx_desc.h |  12 ++++++++
- 9 files changed, 565 insertions(+), 24 deletions(-)
+ drivers/net/wireless/ath/ath11k/debugfs.c |    2
+ drivers/net/wireless/ath/ath11k/dp.h      |   82 ++++++++
+ drivers/net/wireless/ath/ath11k/dp_rx.c   |  199 +++++++++++++++++++-
+ drivers/net/wireless/ath/ath11k/dp_tx.c   |   23 ++
+ drivers/net/wireless/ath/ath11k/hw.c      |  283 ++++++++++++++++++++++++++++-
+ drivers/net/wireless/ath/ath11k/hw.h      |   20 ++
+ drivers/net/wireless/ath/ath11k/mac.c     |    1
+ drivers/net/wireless/ath/ath11k/nss.c     |    2
+ drivers/net/wireless/ath/ath11k/rx_desc.h |   12 +
+ 9 files changed, 594 insertions(+), 30 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/debugfs.c
 +++ b/drivers/net/wireless/ath/ath11k/debugfs.c
-@@ -548,6 +548,7 @@ static ssize_t ath11k_write_extd_rx_stat
+@@ -550,6 +550,7 @@ static ssize_t ath11k_write_extd_rx_stat
  	}
  
  	ar->debug.rx_filter = tlv_filter.rx_filter;
@@ -28,7 +25,7 @@ Subject: [PATCH]
  
  	for (i = 0; i < ab->hw_params.num_rxdma_per_pdev; i++) {
  		ring_id = ar->dp.rx_mon_status_refill_ring[i].refill_buf_ring.ring_id;
-@@ -1108,6 +1109,7 @@ static ssize_t ath11k_write_pktlog_filte
+@@ -1110,6 +1111,7 @@ static ssize_t ath11k_write_pktlog_filte
  	}
  
  	/* Clear rx filter set for monitor mode and rx status */
@@ -236,7 +233,7 @@ Subject: [PATCH]
  static void ath11k_dp_service_mon_ring(struct timer_list *t)
  {
  	struct ath11k_base *ab = timer_container_of(ab, t, mon_reap_timer);
-@@ -2379,6 +2414,49 @@ int ath11k_dp_rx_crypto_icv_len(struct a
+@@ -2380,6 +2415,49 @@ int ath11k_dp_rx_crypto_icv_len(struct a
  	return 0;
  }
  
@@ -286,7 +283,7 @@ Subject: [PATCH]
  static void ath11k_dp_rx_h_undecap_nwifi(struct ath11k *ar,
  					 struct sk_buff *msdu,
  					 u8 *first_hdr,
-@@ -2392,7 +2470,8 @@ static void ath11k_dp_rx_h_undecap_nwifi
+@@ -2393,7 +2471,8 @@ static void ath11k_dp_rx_h_undecap_nwifi
  	u8 da[ETH_ALEN];
  	u8 sa[ETH_ALEN];
  	u16 qos_ctl = 0;
@@ -296,7 +293,7 @@ Subject: [PATCH]
  
  	/* copy SA & DA and pull decapped header */
  	hdr = (struct ieee80211_hdr *)msdu->data;
-@@ -2401,7 +2480,7 @@ static void ath11k_dp_rx_h_undecap_nwifi
+@@ -2402,7 +2481,7 @@ static void ath11k_dp_rx_h_undecap_nwifi
  	ether_addr_copy(sa, ieee80211_get_SA(hdr));
  	skb_pull(msdu, ieee80211_hdrlen(hdr->frame_control));
  
@@ -305,7 +302,7 @@ Subject: [PATCH]
  		/* original 802.11 header is valid for the first msdu
  		 * hence we can reuse the same header
  		 */
-@@ -2431,16 +2510,23 @@ static void ath11k_dp_rx_h_undecap_nwifi
+@@ -2432,16 +2511,23 @@ static void ath11k_dp_rx_h_undecap_nwifi
  
  		/* copy decap header before overwriting for reuse below */
  		memcpy(decap_hdr, (uint8_t *)hdr, hdr_len);
@@ -334,7 +331,7 @@ Subject: [PATCH]
  		memcpy(skb_push(msdu,
  				IEEE80211_QOS_CTL_LEN), &qos_ctl,
  				IEEE80211_QOS_CTL_LEN);
-@@ -2556,6 +2642,20 @@ static void ath11k_dp_rx_h_undecap_eth(s
+@@ -2557,6 +2643,20 @@ static void ath11k_dp_rx_h_undecap_eth(s
  	u8 da[ETH_ALEN];
  	u8 sa[ETH_ALEN];
  	void *rfc1042;
@@ -355,7 +352,7 @@ Subject: [PATCH]
  
  	rfc1042 = ath11k_dp_rx_h_find_rfc1042(ar, msdu, enctype);
  	if (WARN_ON_ONCE(!rfc1042))
-@@ -2584,6 +2684,7 @@ static void ath11k_dp_rx_h_undecap_eth(s
+@@ -2585,6 +2685,7 @@ static void ath11k_dp_rx_h_undecap_eth(s
  
  	memcpy(skb_push(msdu, hdr_len), hdr, hdr_len);
  
@@ -363,7 +360,7 @@ Subject: [PATCH]
  	/* original 802.11 header has a different DA and in
  	 * case of 4addr it may also have different SA
  	 */
-@@ -2602,6 +2703,7 @@ static void ath11k_dp_rx_h_undecap_snap(
+@@ -2603,6 +2704,7 @@ static void ath11k_dp_rx_h_undecap_snap(
  	size_t hdr_len;
  	u8 l3_pad_bytes;
  	struct hal_rx_desc *rx_desc;
@@ -371,7 +368,7 @@ Subject: [PATCH]
  
  	/* Delivered decapped frame:
  	 * [amsdu header] <-- replaced with 802.11 hdr
-@@ -2615,6 +2717,11 @@ static void ath11k_dp_rx_h_undecap_snap(
+@@ -2616,6 +2718,11 @@ static void ath11k_dp_rx_h_undecap_snap(
  	skb_put(msdu, l3_pad_bytes);
  	skb_pull(msdu, sizeof(struct ath11k_dp_amsdu_subframe_hdr) + l3_pad_bytes);
  
@@ -383,7 +380,7 @@ Subject: [PATCH]
  	hdr = (struct ieee80211_hdr *)first_hdr;
  	hdr_len = ieee80211_hdrlen(hdr->frame_control);
  
-@@ -3110,6 +3217,20 @@ static int ath11k_dp_rx_process_msdu(str
+@@ -3111,6 +3218,20 @@ static int ath11k_dp_rx_process_msdu(str
  		goto free_out;
  	}
  
@@ -404,7 +401,7 @@ Subject: [PATCH]
  	rxcb = ATH11K_SKB_RXCB(msdu);
  	rxcb->rx_desc = rx_desc;
  	msdu_len = ath11k_dp_rx_h_msdu_start_msdu_len(ab, rx_desc);
-@@ -3122,8 +3243,9 @@ static int ath11k_dp_rx_process_msdu(str
+@@ -3123,8 +3244,9 @@ static int ath11k_dp_rx_process_msdu(str
  			hdr_status = ath11k_dp_rx_h_80211_hdr(ab, rx_desc);
  			ret = -EINVAL;
  			ath11k_warn(ab, "invalid msdu len %u\n", msdu_len);
@@ -416,7 +413,7 @@ Subject: [PATCH]
  			ath11k_dbg_dump(ab, ATH11K_DBG_DATA, NULL, "", rx_desc,
  					sizeof(struct hal_rx_desc));
  			goto free_out;
-@@ -4034,6 +4156,7 @@ static int ath11k_dp_rx_h_verify_tkip_mi
+@@ -4039,6 +4161,7 @@ static int ath11k_dp_rx_h_verify_tkip_mi
  
  	hdr = (struct ieee80211_hdr *)(msdu->data + hal_rx_desc_sz);
  	hdr_len = ieee80211_hdrlen(hdr->frame_control);
@@ -424,7 +421,7 @@ Subject: [PATCH]
  	head_len = hdr_len + hal_rx_desc_sz + IEEE80211_TKIP_IV_LEN;
  	tail_len = IEEE80211_CCMP_MIC_LEN + IEEE80211_TKIP_ICV_LEN + FCS_LEN;
  
-@@ -4320,8 +4443,8 @@ static void ath11k_dp_rx_h_sort_frags(st
+@@ -4325,8 +4448,8 @@ static void ath11k_dp_rx_h_sort_frags(st
  
  static u64 ath11k_dp_rx_h_get_pn(struct ath11k *ar, struct sk_buff *skb)
  {
@@ -434,7 +431,7 @@ Subject: [PATCH]
  	u8 *ehdr;
  	u32 hal_rx_desc_sz = ar->ab->hw_params.hal_desc_sz;
  
-@@ -4551,8 +4674,9 @@ ath11k_dp_process_rx_err_buf(struct ath1
+@@ -4556,8 +4679,9 @@ ath11k_dp_process_rx_err_buf(struct ath1
  	if ((msdu_len + hal_rx_desc_sz) > DP_RX_BUFFER_SIZE) {
  		hdr_status = ath11k_dp_rx_h_80211_hdr(ar->ab, rx_desc);
  		ath11k_warn(ar->ab, "invalid msdu leng %u", msdu_len);
@@ -446,7 +443,7 @@ Subject: [PATCH]
  		ath11k_dbg_dump(ar->ab, ATH11K_DBG_DATA, NULL, "", rx_desc,
  				sizeof(struct hal_rx_desc));
  		dev_kfree_skb_any(msdu);
-@@ -5197,6 +5321,47 @@ void ath11k_dp_rx_pdev_free(struct ath11
+@@ -5202,6 +5326,47 @@ void ath11k_dp_rx_pdev_free(struct ath11
  	ath11k_dp_rxdma_pdev_buf_free(ar);
  }
  
@@ -494,7 +491,7 @@ Subject: [PATCH]
  int ath11k_dp_rx_pdev_alloc(struct ath11k_base *ab, int mac_id)
  {
  	struct ath11k *ar = ab->pdevs[mac_id].ar;
-@@ -5290,6 +5455,12 @@ config_refill_ring:
+@@ -5295,6 +5460,12 @@ config_refill_ring:
  		}
  	}
  
@@ -509,7 +506,7 @@ Subject: [PATCH]
  
 --- a/drivers/net/wireless/ath/ath11k/dp_tx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_tx.c
-@@ -1277,6 +1277,8 @@ int ath11k_dp_tx_htt_rx_filter_setup(str
+@@ -1280,6 +1280,8 @@ int ath11k_dp_tx_htt_rx_filter_setup(str
  				 !!(params.flags & HAL_SRNG_FLAGS_MSI_SWAP));
  	cmd->info0 |= FIELD_PREP(HTT_RX_RING_SELECTION_CFG_CMD_INFO0_PS,
  				 !!(params.flags & HAL_SRNG_FLAGS_DATA_TLV_SWAP));
@@ -518,7 +515,7 @@ Subject: [PATCH]
  
  	cmd->info1 = FIELD_PREP(HTT_RX_RING_SELECTION_CFG_CMD_INFO1_BUF_SIZE,
  				rx_buf_size);
-@@ -1286,6 +1288,26 @@ int ath11k_dp_tx_htt_rx_filter_setup(str
+@@ -1289,6 +1291,26 @@ int ath11k_dp_tx_htt_rx_filter_setup(str
  	cmd->pkt_type_en_flags3 = tlv_filter->pkt_filter_flags3;
  	cmd->rx_filter_tlv = tlv_filter->rx_filter;
  
@@ -545,7 +542,7 @@ Subject: [PATCH]
  	ret = ath11k_htc_send(&ab->htc, ab->dp.eid, skb);
  	if (ret)
  		goto err_free;
-@@ -1364,6 +1386,7 @@ int ath11k_dp_tx_htt_monitor_mode_ring_c
+@@ -1367,6 +1389,7 @@ int ath11k_dp_tx_htt_monitor_mode_ring_c
  	}
  
  	ring_id = dp->rxdma_mon_buf_ring.refill_buf_ring.ring_id;
@@ -585,16 +582,16 @@ Subject: [PATCH]
 +#ifdef CPTCFG_ATH11K_MEM_PROFILE_512M
 +static void ath11k_hw_ipq8074_rx_desc_get_offset(struct htt_rx_ring_tlv_filter *tlv_filter)
 +{
-+	tlv_filter->rx_mpdu_end_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_ipq8074, mpdu_end_tag));
-+	tlv_filter->rx_mpdu_start_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_ipq8074, mpdu_start_tag));
-+	tlv_filter->rx_msdu_end_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_ipq8074, msdu_end_tag));
-+	tlv_filter->rx_msdu_start_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_ipq8074, msdu_start_tag));
-+	tlv_filter->rx_attn_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_ipq8074, rx_attn_tag));
++	tlv_filter->rx_mpdu_end_offset = offsetof
++			(struct hal_rx_desc_ipq8074, mpdu_end_tag);
++	tlv_filter->rx_mpdu_start_offset = offsetof
++			(struct hal_rx_desc_ipq8074, mpdu_start_tag);
++	tlv_filter->rx_msdu_end_offset = offsetof
++			(struct hal_rx_desc_ipq8074, msdu_end_tag);
++	tlv_filter->rx_msdu_start_offset = offsetof
++			(struct hal_rx_desc_ipq8074, msdu_start_tag);
++	tlv_filter->rx_attn_offset = offsetof
++			(struct hal_rx_desc_ipq8074, rx_attn_tag);
 +}
 +#endif
 +
@@ -730,23 +727,37 @@ Subject: [PATCH]
  }
  
  static bool ath11k_hw_wcn6855_rx_desc_encrypt_valid(struct hal_rx_desc *desc)
-@@ -784,6 +902,96 @@ static u8 *ath11k_hw_wcn6855_rx_desc_mpd
+@@ -784,6 +902,110 @@ static u8 *ath11k_hw_wcn6855_rx_desc_mpd
  {
  	return desc->u.wcn6855.mpdu_start.addr2;
  }
 +#ifdef CPTCFG_ATH11K_MEM_PROFILE_512M
 +static void ath11k_hw_qcn9074_rx_desc_get_offset(struct htt_rx_ring_tlv_filter *tlv_filter)
 +{
-+	tlv_filter->rx_mpdu_end_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_qcn9074, mpdu_end_tag));
-+	tlv_filter->rx_mpdu_start_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_qcn9074, mpdu_start_tag));
-+	tlv_filter->rx_msdu_end_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_qcn9074, msdu_end_tag));
-+	tlv_filter->rx_msdu_start_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_qcn9074, msdu_start_tag));
-+	tlv_filter->rx_attn_offset = __le16_to_cpu(offsetof
-+			(struct hal_rx_desc_qcn9074, rx_attn_tag));
++	tlv_filter->rx_mpdu_end_offset = offsetof
++			(struct hal_rx_desc_qcn9074, mpdu_end_tag);
++	tlv_filter->rx_mpdu_start_offset = offsetof
++			(struct hal_rx_desc_qcn9074, mpdu_start_tag);
++	tlv_filter->rx_msdu_end_offset = offsetof
++			(struct hal_rx_desc_qcn9074, msdu_end_tag);
++	tlv_filter->rx_msdu_start_offset = offsetof
++			(struct hal_rx_desc_qcn9074, msdu_start_tag);
++	tlv_filter->rx_attn_offset = offsetof
++			(struct hal_rx_desc_qcn9074, rx_attn_tag);
++}
++
++static void ath11k_hw_wcn6855_rx_desc_get_offset(struct htt_rx_ring_tlv_filter *tlv_filter)
++{
++	tlv_filter->rx_mpdu_end_offset = offsetof
++			(struct hal_rx_desc_wcn6855, mpdu_end_tag);
++	tlv_filter->rx_mpdu_start_offset = offsetof
++			(struct hal_rx_desc_wcn6855, mpdu_start_tag);
++	tlv_filter->rx_msdu_end_offset = offsetof
++			(struct hal_rx_desc_wcn6855, msdu_end_tag);
++	tlv_filter->rx_msdu_start_offset = offsetof
++			(struct hal_rx_desc_wcn6855, msdu_start_tag);
++	tlv_filter->rx_attn_offset = offsetof
++			(struct hal_rx_desc_wcn6855, rx_attn_tag);
 +}
 +#endif
 +
@@ -827,7 +838,7 @@ Subject: [PATCH]
  
  static void ath11k_hw_wcn6855_reo_setup(struct ath11k_base *ab)
  {
-@@ -989,6 +1197,13 @@ const struct ath11k_hw_ops ipq8074_ops =
+@@ -989,6 +1211,13 @@ const struct ath11k_hw_ops ipq8074_ops =
  	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq8074_rx_desc_mpdu_start_addr2,
  	.get_ring_selector = ath11k_hw_ipq8074_get_tcl_ring_selector,
  	.rx_desc_get_hal_mpdu_len = ath11k_hw_ipq8074_rx_desc_get_hal_mpdu_len,
@@ -841,7 +852,7 @@ Subject: [PATCH]
  };
  
  const struct ath11k_hw_ops ipq6018_ops = {
-@@ -1031,6 +1246,13 @@ const struct ath11k_hw_ops ipq6018_ops =
+@@ -1031,6 +1260,13 @@ const struct ath11k_hw_ops ipq6018_ops =
  	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq8074_rx_desc_mpdu_start_addr2,
  	.get_ring_selector = ath11k_hw_ipq8074_get_tcl_ring_selector,
  	.rx_desc_get_hal_mpdu_len = ath11k_hw_ipq8074_rx_desc_get_hal_mpdu_len,
@@ -855,7 +866,7 @@ Subject: [PATCH]
  };
  
  const struct ath11k_hw_ops qca6390_ops = {
-@@ -1073,6 +1295,13 @@ const struct ath11k_hw_ops qca6390_ops =
+@@ -1073,6 +1309,13 @@ const struct ath11k_hw_ops qca6390_ops =
  	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq8074_rx_desc_mpdu_start_addr2,
  	.get_ring_selector = ath11k_hw_ipq8074_get_tcl_ring_selector,
  	.rx_desc_get_hal_mpdu_len = ath11k_hw_ipq8074_rx_desc_get_hal_mpdu_len,
@@ -869,7 +880,7 @@ Subject: [PATCH]
  };
  
  const struct ath11k_hw_ops qcn9074_ops = {
-@@ -1111,10 +1340,17 @@ const struct ath11k_hw_ops qcn9074_ops =
+@@ -1111,10 +1354,17 @@ const struct ath11k_hw_ops qcn9074_ops =
  	.rx_desc_get_msdu_payload = ath11k_hw_qcn9074_rx_desc_get_msdu_payload,
  	.reo_setup = ath11k_hw_ipq8074_reo_setup,
  	.mpdu_info_get_peerid = ath11k_hw_qcn9074_mpdu_info_get_peerid,
@@ -889,9 +900,39 @@ Subject: [PATCH]
  };
  
  const struct ath11k_hw_ops wcn6855_ops = {
+@@ -1156,6 +1406,9 @@ const struct ath11k_hw_ops wcn6855_ops =
+ 	.rx_desc_mpdu_start_addr2 = ath11k_hw_wcn6855_rx_desc_mpdu_start_addr2,
+ 	.get_ring_selector = ath11k_hw_ipq8074_get_tcl_ring_selector,
+ 	.rx_desc_get_hal_mpdu_len = ath11k_hw_ipq8074_rx_desc_get_hal_mpdu_len,
++#ifdef CPTCFG_ATH11K_MEM_PROFILE_512M
++	.rx_desc_get_offset = ath11k_hw_wcn6855_rx_desc_get_offset,
++#endif
+ };
+ 
+ const struct ath11k_hw_ops wcn6750_ops = {
+@@ -1197,6 +1450,9 @@ const struct ath11k_hw_ops wcn6750_ops =
+ 	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq9074_rx_desc_mpdu_start_addr2,
+ 	.get_ring_selector = ath11k_hw_wcn6750_get_tcl_ring_selector,
+ 	.rx_desc_get_hal_mpdu_len = ath11k_hw_ipq8074_rx_desc_get_hal_mpdu_len,
++#ifdef CPTCFG_ATH11K_MEM_PROFILE_512M
++	.rx_desc_get_offset = ath11k_hw_qcn9074_rx_desc_get_offset,
++#endif
+ };
+ 
+ /* IPQ5018 hw ops is similar to QCN9074 except for the dest ring remap */
+@@ -1240,6 +1496,9 @@ const struct ath11k_hw_ops ipq5018_ops =
+ 	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq9074_rx_desc_mpdu_start_addr2,
+ 	.get_ring_selector = ath11k_hw_ipq8074_get_tcl_ring_selector,
+ 	.rx_desc_get_hal_mpdu_len = ath11k_hw_qcn9074_rx_desc_get_hal_mpdu_len,
++#ifdef CPTCFG_ATH11K_MEM_PROFILE_512M
++	.rx_desc_get_offset = ath11k_hw_qcn9074_rx_desc_get_offset,
++#endif
+ };
+ 
+ #define ATH11K_TX_RING_MASK_0 BIT(0)
 --- a/drivers/net/wireless/ath/ath11k/hw.h
 +++ b/drivers/net/wireless/ath/ath11k/hw.h
-@@ -22,6 +22,11 @@
+@@ -27,6 +27,11 @@
  #define ATH11K_DP_RXDMA_MON_STATUS_RING_SIZE	512
  #define ATH11K_DP_RXDMA_MONITOR_BUF_RING_SIZE	128
  #define ATH11K_DP_RXDMA_MONITOR_DST_RING_SIZE	128
@@ -901,9 +942,9 @@ Subject: [PATCH]
 + */
 +#define ATH11K_DP_RXDMA_NSS_REFILL_RING_SIZE	1816
  #else
- /* Num VDEVS per radio */
- #define TARGET_NUM_VDEVS(ab)	(ab->hw_params.num_vdevs_peers[ab->qmi.target_mem_mode].num_vdevs)
-@@ -33,6 +38,8 @@
+ /* Some devices have no profile table. Never exceed their firmware limits. */
+ #define ATH11K_PROFILE_LIMIT(ab, field) \
+@@ -43,6 +48,8 @@
  #define ATH11K_DP_RXDMA_MON_STATUS_RING_SIZE	1024
  #define ATH11K_DP_RXDMA_MONITOR_BUF_RING_SIZE	4096
  #define ATH11K_DP_RXDMA_MONITOR_DST_RING_SIZE	2048
@@ -912,7 +953,7 @@ Subject: [PATCH]
  #endif
  
  /* Num of peers for Single Radio mode */
-@@ -134,6 +141,9 @@ enum ath11k_bus {
+@@ -144,6 +151,9 @@ enum ath11k_bus {
  struct hal_rx_desc;
  struct hal_tcl_data_cmd;
  
@@ -922,7 +963,7 @@ Subject: [PATCH]
  struct ath11k_hw_ring_mask {
  	u8 tx[ATH11K_EXT_IRQ_GRP_NUM_MAX];
  	u8 rx_mon_status[ATH11K_EXT_IRQ_GRP_NUM_MAX];
-@@ -297,6 +307,16 @@ struct ath11k_hw_ops {
+@@ -307,6 +317,16 @@ struct ath11k_hw_ops {
  	u8* (*rx_desc_mpdu_start_addr2)(struct hal_rx_desc *desc);
  	u32 (*get_ring_selector)(struct sk_buff *skb);
  	u32 (*rx_desc_get_hal_mpdu_len)(struct hal_rx_mpdu_info *mpdu_info);
@@ -941,7 +982,7 @@ Subject: [PATCH]
  extern const struct ath11k_hw_ops ipq8074_ops;
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -6991,6 +6991,7 @@ static int ath11k_mac_config_mon_status_
+@@ -6983,6 +6983,7 @@ static int ath11k_mac_config_mon_status_
  			tlv_filter.rx_filter = ath11k_debugfs_rx_filter(ar);
  	}
  
@@ -951,7 +992,7 @@ Subject: [PATCH]
  		ret = ath11k_dp_tx_htt_rx_filter_setup(ar->ab, ring_id,
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -4363,7 +4363,7 @@ static int ath11k_nss_init(struct ath11k
+@@ -4545,7 +4545,7 @@ static int ath11k_nss_init(struct ath11k
  
  	/* fill rx parameters to initialize rx context */
  	wim->wrip.tlv_size = ab->hw_params.hal_desc_sz;

@@ -11,12 +11,12 @@ other usage.
 
 Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/nss.c | 41 +++++++++++++++++++++++++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/nss.c |   41 +++++++++++++++++++++++++++++++++
  1 file changed, 41 insertions(+)
 
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -101,6 +101,43 @@ static void ath11k_nss_wifili_stats_sync
+@@ -220,6 +220,43 @@ static void ath11k_nss_wifili_stats_sync
  	spin_unlock_bh(&ab->base_lock);
  }
  
@@ -54,13 +54,13 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 +
 +exit:
 +	ath11k_hal_srng_access_end(ab, srng);
-+	spin_unlock(&srng->lock);
++	spin_unlock_bh(&srng->lock);
 +}
 +
  static void ath11k_nss_get_peer_stats(struct ath11k_base *ab, struct nss_wifili_peer_stats *stats)
  {
  	struct ath11k_peer *peer;
-@@ -369,6 +406,10 @@ void ath11k_nss_wifili_event_receive(str
+@@ -494,6 +531,10 @@ void ath11k_nss_wifili_event_receive(str
  		ath11k_dbg(ab, ATH11K_DBG_NSS_MESH, "nss wifili mesh capability response %d\n",
  			   ab->nss.mesh_nss_offload_enabled);
  		break;
