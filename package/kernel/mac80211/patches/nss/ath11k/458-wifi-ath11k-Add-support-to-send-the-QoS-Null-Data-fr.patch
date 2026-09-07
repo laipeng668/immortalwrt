@@ -11,14 +11,18 @@ its a QoS NULL data frame.
 
 Added this frame under exception route to bypass TCL with the help of FW.
 
+Refresh QoS Null encapsulation selection against the corrected firmware
+exception path. is_diff_encap now suffices to request metadata, so these
+frames do not depend on an EAPOL skb protocol value.
+
 Signed-off-by: Karthikeyan Periyasamy <quic_periyasa@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/dp_tx.c | 3 ++-
+ drivers/net/wireless/ath/ath11k/dp_tx.c |    3 ++-
  1 file changed, 2 insertions(+), 1 deletion(-)
 
 --- a/drivers/net/wireless/ath/ath11k/dp_tx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_tx.c
-@@ -221,7 +221,8 @@ tcl_ring_sel:
+@@ -232,7 +232,8 @@ tcl_ring_sel:
  
  	switch (ti.encap_type) {
  	case HAL_TCL_ENCAP_TYPE_NATIVE_WIFI:

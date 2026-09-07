@@ -15,14 +15,14 @@ is sent to mac80211 for further handling.
 
 Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/mac.c |  30 +++++++++++++++++++++++++++---
- drivers/net/wireless/ath/ath11k/wmi.c | 123 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------------
- drivers/net/wireless/ath/ath11k/wmi.h |  32 ++++++++++++++++++++++++++++++++-
- 3 files changed, 166 insertions(+), 19 deletions(-)
+ drivers/net/wireless/ath/ath11k/mac.c |   30 +++++++-
+ drivers/net/wireless/ath/ath11k/wmi.c |  125 +++++++++++++++++++++++++++++----
+ drivers/net/wireless/ath/ath11k/wmi.h |   32 ++++++++
+ 3 files changed, 168 insertions(+), 19 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -6291,6 +6291,16 @@ static int ath11k_mac_mgmt_tx_wmi(struct
+@@ -6297,6 +6297,16 @@ static int ath11k_mac_mgmt_tx_wmi(struct
  
  	ATH11K_SKB_CB(skb)->paddr = paddr;
  
@@ -39,7 +39,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	peer_in_unassoc_pool = ath11k_cfr_peer_is_in_cfr_unassoc_pool(ar, hdr->addr1);
  
  	if (ar->cfr_enabled &&
-@@ -6535,8 +6545,8 @@ static void ath11k_mgmt_over_wmi_tx_work
+@@ -6541,8 +6551,8 @@ static void ath11k_mgmt_over_wmi_tx_work
  	}
  }
  
@@ -50,7 +50,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  {
  	struct sk_buff_head *q = &ar->wmi_mgmt_tx_queue;
  
-@@ -6598,7 +6608,7 @@ static void ath11k_mac_op_tx(struct ieee
+@@ -6604,7 +6614,7 @@ static void ath11k_mac_op_tx(struct ieee
  	} else if (ieee80211_is_mgmt(hdr->frame_control)) {
  		frm_type = FIELD_GET(IEEE80211_FCTL_STYPE, hdr->frame_control);
  		is_prb_rsp = ieee80211_is_probe_resp(hdr->frame_control);
@@ -59,7 +59,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  		if (ret) {
  			if (ret != -EBUSY)
  				ath11k_warn(ar->ab, "failed to queue management frame %d\n",
-@@ -6613,6 +6623,20 @@ static void ath11k_mac_op_tx(struct ieee
+@@ -6619,6 +6629,20 @@ static void ath11k_mac_op_tx(struct ieee
  			spin_unlock_bh(&ar->data_lock);
  		}
  		return;
@@ -82,16 +82,18 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	if (control->sta)
 --- a/drivers/net/wireless/ath/ath11k/wmi.c
 +++ b/drivers/net/wireless/ath/ath11k/wmi.c
-@@ -118,7 +118,7 @@ static const struct wmi_tlv_policy wmi_t
+@@ -118,7 +118,9 @@ static const struct wmi_tlv_policy wmi_t
  	[WMI_TAG_MGMT_RX_HDR]
  		= { .min_len = sizeof(struct wmi_mgmt_rx_hdr) },
  	[WMI_TAG_MGMT_TX_COMPL_EVENT]
 -		= { .min_len = sizeof(struct wmi_mgmt_tx_compl_event) },
 +		= { .min_len = sizeof(struct wmi_tx_compl_event) },
++	[WMI_TAG_QOS_NULL_FRAME_TX_STATUS]
++		= { .min_len = sizeof(struct wmi_tx_compl_event) },
  	[WMI_TAG_SCAN_EVENT]
  		= { .min_len = sizeof(struct wmi_scan_event) },
  	[WMI_TAG_PEER_STA_KICKOUT_EVENT]
-@@ -720,6 +720,55 @@ int ath11k_wmi_mgmt_send(struct ath11k *
+@@ -720,6 +722,55 @@ int ath11k_wmi_mgmt_send(struct ath11k *
  	return ret;
  }
  
@@ -147,7 +149,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  int ath11k_wmi_vdev_create(struct ath11k *ar, u8 *macaddr,
  			   struct vdev_create_params *param)
  {
-@@ -6083,8 +6132,8 @@ static int ath11k_pull_mgmt_rx_params_tl
+@@ -6083,8 +6134,8 @@ static int ath11k_pull_mgmt_rx_params_tl
  	return 0;
  }
  
@@ -158,7 +160,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  {
  	struct sk_buff *msdu;
  	struct ieee80211_tx_info *info;
-@@ -6125,6 +6174,11 @@ static int wmi_process_mgmt_tx_comp(stru
+@@ -6125,6 +6176,11 @@ static int wmi_process_mgmt_tx_comp(stru
  			info->status.ack_signal = tx_compl_param->ack_rssi;
  	}
  
@@ -170,7 +172,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	hdr = (struct ieee80211_hdr *)msdu->data;
  	frm_type = FIELD_GET(IEEE80211_FCTL_STYPE, hdr->frame_control);
  
-@@ -6143,10 +6197,13 @@ static int wmi_process_mgmt_tx_comp(stru
+@@ -6143,10 +6199,13 @@ static int wmi_process_mgmt_tx_comp(stru
  	arvif = ath11k_vif_to_arvif(vif);
  	mgmt_stats = &arvif->mgmt_stats;
  
@@ -188,7 +190,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	spin_unlock_bh(&ar->data_lock);
  
  skip_mgmt_stats:
-@@ -6168,12 +6225,13 @@ skip_mgmt_stats:
+@@ -6168,12 +6227,13 @@ skip_mgmt_stats:
  	return 0;
  }
  
@@ -206,7 +208,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	int ret;
  
  	tb = ath11k_wmi_tlv_parse_alloc(ab, skb, GFP_ATOMIC);
-@@ -6183,7 +6241,7 @@ static int ath11k_pull_mgmt_tx_compl_par
+@@ -6183,7 +6243,7 @@ static int ath11k_pull_mgmt_tx_compl_par
  		return ret;
  	}
  
@@ -215,7 +217,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	if (!ev) {
  		ath11k_warn(ab, "failed to fetch mgmt tx compl ev");
  		kfree(tb);
-@@ -7901,10 +7959,11 @@ exit:
+@@ -7901,10 +7961,11 @@ exit:
  
  static void ath11k_mgmt_tx_compl_event(struct ath11k_base *ab, struct sk_buff *skb)
  {
@@ -229,7 +231,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  		ath11k_warn(ab, "failed to extract mgmt tx compl event");
  		return;
  	}
-@@ -7917,7 +7976,7 @@ static void ath11k_mgmt_tx_compl_event(s
+@@ -7917,7 +7978,7 @@ static void ath11k_mgmt_tx_compl_event(s
  		goto exit;
  	}
  
@@ -238,7 +240,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  
  	ath11k_dbg(ab, ATH11K_DBG_MGMT,
  		   "event mgmt tx compl ev pdev_id %d, desc_id %d, status %d ack_rssi %d",
-@@ -7928,6 +7987,36 @@ exit:
+@@ -7928,6 +7989,36 @@ exit:
  	rcu_read_unlock();
  }
  
@@ -275,7 +277,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  static struct ath11k *ath11k_get_ar_on_scan_state(struct ath11k_base *ab,
  						  u32 vdev_id,
  						  enum ath11k_scan_state state)
-@@ -9297,6 +9386,10 @@ static void ath11k_wmi_tlv_op_rx(struct
+@@ -9300,6 +9391,10 @@ static void ath11k_wmi_tlv_op_rx(struct
  	case WMI_PEER_CFR_CAPTURE_EVENTID:
  		ath11k_wmi_parse_cfr_capture_event(ab, skb);
  		break;

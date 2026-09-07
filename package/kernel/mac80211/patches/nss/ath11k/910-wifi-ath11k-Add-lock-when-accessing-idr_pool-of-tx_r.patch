@@ -10,16 +10,20 @@ the module.
 Fix this by adding tx_idr_lock when accessing idr_pool
 of tx_ring.
 
+Refresh the IDR-pool locking hunks after the TX retry cleanup changes. Keep
+allocation and removal serialized by tx_idr_lock, including the completion
+path.
+
 Signed-off-by: Aishwarya R <quic_aisr@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/dp_tx.c | 8 ++++++++
- 1 file changed, 8 insertions(+)
+ drivers/net/wireless/ath/ath11k/dp_tx.c |    8 ++++++++
+ 1 file changed, 8 insertions(+), 0 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/dp_tx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_tx.c
-@@ -347,8 +347,10 @@ fail_remove_idr:
- 	if (ti.pkt_offset)
- 		skb_pull(skb, ti.pkt_offset);
+@@ -365,8 +365,10 @@ fail_remove_idr:
+ 		tail_len = 0;
+ 	}
  
 +	spin_lock_bh(&tx_ring->tx_idr_lock);
  	tx_ring->idr_pool[idr].id = -1;
@@ -28,7 +32,7 @@ Signed-off-by: Aishwarya R <quic_aisr@quicinc.com>
  
  	if (tcl_ring_retry)
  		goto tcl_ring_sel;
-@@ -364,12 +366,14 @@ static void ath11k_dp_tx_free_txbuf(stru
+@@ -382,12 +384,14 @@ static void ath11k_dp_tx_free_txbuf(stru
  	struct sk_buff *msdu = NULL;
  	struct ath11k_skb_cb *skb_cb;
  
@@ -43,7 +47,7 @@ Signed-off-by: Aishwarya R <quic_aisr@quicinc.com>
  
  	if (unlikely(!msdu)) {
  		ath11k_warn(ab, "tx completion for unknown msdu_id %d\n",
-@@ -401,12 +405,14 @@ ath11k_dp_tx_htt_tx_complete_buf(struct
+@@ -419,12 +423,14 @@ ath11k_dp_tx_htt_tx_complete_buf(struct
  	u32 msdu_id = ts->msdu_id;
  	u8 flags;
  
@@ -58,7 +62,7 @@ Signed-off-by: Aishwarya R <quic_aisr@quicinc.com>
  
  	if (unlikely(!msdu)) {
  		ath11k_warn(ab, "htt tx completion for unknown msdu_id %d\n",
-@@ -892,12 +898,14 @@ void ath11k_dp_tx_completion_handler(str
+@@ -914,12 +920,14 @@ void ath11k_dp_tx_completion_handler(str
  			continue;
  		}
  

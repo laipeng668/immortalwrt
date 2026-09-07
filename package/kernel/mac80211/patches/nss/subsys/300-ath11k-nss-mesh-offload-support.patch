@@ -14,6 +14,10 @@ Subject: [PATCH] ath11k: Add mesh nss offload support
 - New mac80211-driver callbacks for mesh vap, mpath and mpp
   configurations.
 
+Keep the common ieee80211_8023_xmit declaration and key variable at the mesh
+transmit call site now that the earlier AP_VLAN shortcut is removed. Mesh
+offload retains the normal transmitter and its fallback bookkeeping.
+
 Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
 
 Change-Id: Ib6950344286ba18fab43586262c62dcd09557614
@@ -22,17 +26,17 @@ Signed-off-by: Karthikeyan Kathirvel <kathirve@codeaurora.org>
 Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
 Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
 ---
- include/net/mac80211.h      | 126 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- net/mac80211/cfg.c          |  19 +++++++++--
- net/mac80211/debug.h        |  10 ++++++
- net/mac80211/debugfs.c      |   1 +
- net/mac80211/driver-ops.c   |  20 +++++++++++
- net/mac80211/driver-ops.h   |   7 ++++
- net/mac80211/mesh.h         |   5 +++
- net/mac80211/mesh_hwmp.c    | 308 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-------
- net/mac80211/mesh_pathtbl.c | 203 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++----------------
- net/mac80211/tx.c           |  33 +++++++++++++-----
- 10 files changed, 679 insertions(+), 53 deletions(-)
+ include/net/mac80211.h      |  126 +++++++++++++++++
+ net/mac80211/cfg.c          |   19 +++-
+ net/mac80211/debug.h        |   10 ++
+ net/mac80211/debugfs.c      |    1 +
+ net/mac80211/driver-ops.c   |   20 +++
+ net/mac80211/driver-ops.h   |    7 +
+ net/mac80211/mesh.h         |    5 +
+ net/mac80211/mesh_hwmp.c    |  308 +++++++++++++++++++++++++++++++++++++++--
+ net/mac80211/mesh_pathtbl.c |  203 +++++++++++++++++++++++----
+ net/mac80211/tx.c           |   37 ++++--
+ 10 files changed, 683 insertions(+), 53 deletions(-)
 
 --- a/include/net/mac80211.h
 +++ b/include/net/mac80211.h
@@ -1173,7 +1177,17 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  void mesh_pathtbl_unregister(struct ieee80211_sub_if_data *sdata)
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -2676,7 +2676,7 @@ static struct sk_buff *ieee80211_build_h
+@@ -38,6 +38,9 @@
+ #include "wme.h"
+ #include "rate.h"
+ 
++static void ieee80211_8023_xmit(struct ieee80211_sub_if_data *sdata,
++				struct net_device *dev, struct sta_info *sta,
++				struct ieee80211_key *key, struct sk_buff *skb);
+ /* misc utils */
+ 
+ static __le16 ieee80211_duration(struct ieee80211_tx_data *tx,
+@@ -2673,7 +2676,7 @@ static struct sk_buff *ieee80211_build_h
  	bool multicast;
  	u16 info_id = 0;
  	struct ieee80211_chanctx_conf *chanctx_conf = NULL;
@@ -1182,7 +1196,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	int ret;
  	u8 link_id = u32_get_bits(ctrl_flags, IEEE80211_TX_CTRL_MLO_LINK);
  
-@@ -2688,6 +2688,9 @@ static struct sk_buff *ieee80211_build_h
+@@ -2685,6 +2688,9 @@ static struct sk_buff *ieee80211_build_h
  		info_flags |= IEEE80211_TX_CTL_REQ_TX_STATUS;
  #endif
  
@@ -1192,7 +1206,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	/* convert Ethernet header to proper 802.11 header (based on
  	 * operation mode) */
  	ethertype = (skb->data[12] << 8) | skb->data[13];
-@@ -2758,6 +2761,13 @@ static struct sk_buff *ieee80211_build_h
+@@ -2755,6 +2761,13 @@ static struct sk_buff *ieee80211_build_h
  		break;
  #ifdef CPTCFG_MAC80211_MESH
  	case NL80211_IFTYPE_MESH_POINT:
@@ -1206,7 +1220,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  		if (!is_multicast_ether_addr(skb->data)) {
  			struct sta_info *next_hop;
  			bool mpp_lookup = true;
-@@ -3040,10 +3050,10 @@ static struct sk_buff *ieee80211_build_h
+@@ -3037,10 +3050,10 @@ static struct sk_buff *ieee80211_build_h
  
  	skb_reset_mac_header(skb);
  
@@ -1221,15 +1235,16 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	if (info_id) {
  		info->status_data = info_id;
  		info->status_data_idr = 1;
-@@ -4389,6 +4399,7 @@ void __ieee80211_subif_start_xmit(struct
+@@ -4385,6 +4398,8 @@ void __ieee80211_subif_start_xmit(struct
+ 	struct sta_info *sta;
  	struct sk_buff *next;
  	int len = skb->len;
- 	struct ieee80211_key *key = NULL;
++	struct ieee80211_key *key = NULL;
 +	struct ieee80211_tx_info *info;
- 	struct ieee80211_sub_if_data *ap_sdata;
  
  	if (unlikely(!ieee80211_sdata_running(sdata) || skb->len < ETH_HLEN)) {
-@@ -4463,9 +4474,15 @@ void __ieee80211_subif_start_xmit(struct
+ 		kfree_skb(skb);
+@@ -4442,9 +4457,15 @@ void __ieee80211_subif_start_xmit(struct
  			goto out;
  		}
  

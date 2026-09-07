@@ -6,14 +6,17 @@ Subject: [PATCH] wifi: ath11k: Advertise TX_QUEUE mac hw flag
 To avoid tx queuing in mac80211, advertise TX_QUEUE mac hw flag
 which enable tx queuing in driver and avoid performance degradation.
 
+Refresh the hardware-flag registration context after the TX and NSS updates.
+HAS_TX_QUEUE advertisement still matches the driver queue implementation.
+
 Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/mac.c | 1 +
- 1 file changed, 1 insertion(+)
+ drivers/net/wireless/ath/ath11k/mac.c |    1 +
+ 1 file changed, 1 insertion(+), 0 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -11173,6 +11173,7 @@ static int __ath11k_mac_register(struct
+@@ -11156,6 +11156,7 @@ static int __ath11k_mac_register(struct
  	ieee80211_hw_set(ar->hw, QUEUE_CONTROL);
  	ieee80211_hw_set(ar->hw, SUPPORTS_TX_FRAG);
  	ieee80211_hw_set(ar->hw, REPORTS_LOW_ACK);

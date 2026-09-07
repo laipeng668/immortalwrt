@@ -7,15 +7,19 @@ Subject: [PATCH 2/3] ath11k: extend ext vdev in NSS for dynamic VLAN handling
 - existing ext vdev NSS API callbacks are used for both WDS and
   dynamic VLAN di_types.
 
+Retain dynamic-VLAN interface type and group-key configuration while
+rebasing the extended-VDEV helpers on the corrected allocation and cleanup
+paths. The SDK payload fields and message types are unchanged.
+
 Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/nss.c | 101 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---------
- drivers/net/wireless/ath/ath11k/nss.h |  19 +++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/nss.c |  101 +++++++++++++++++++++++++++++++++++++----
+ drivers/net/wireless/ath/ath11k/nss.h |   19 ++++++++
  2 files changed, 111 insertions(+), 9 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -1530,14 +1530,11 @@ static int ath11k_nss_ext_vdev_register(
+@@ -1725,14 +1725,11 @@ static int ath11k_nss_ext_vdev_register(
  	struct ath11k *ar = arvif->ar;
  	struct ath11k_base *ab = ar->ab;
  	nss_tx_status_t status;
@@ -30,7 +34,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	arvif->nss.ctx = nss_wifi_ext_vdev_register_if(arvif->nss.if_num,
  						       ath11k_nss_ext_vdev_data_receive,
  						       ath11k_nss_ext_vdev_special_data_receive,
-@@ -1565,7 +1562,8 @@ static void ath11k_nss_ext_vdev_free(str
+@@ -1760,7 +1757,8 @@ static void ath11k_nss_ext_vdev_free(str
  
  	status = nss_dynamic_interface_dealloc_node(
  					arvif->nss.if_num,
@@ -40,7 +44,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	if (status != NSS_TX_SUCCESS)
  		ath11k_warn(ab, "failed to free nss ext vdev err:%d\n",
  			    status);
-@@ -1574,14 +1572,19 @@ static void ath11k_nss_ext_vdev_free(str
+@@ -1769,14 +1767,19 @@ static void ath11k_nss_ext_vdev_free(str
  			   "nss ext vdev interface deallocated\n");
  }
  
@@ -62,7 +66,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	if_num = nss_dynamic_interface_alloc_node(di_type);
  	if (if_num < 0) {
  		ath11k_warn(ab, "failed to allocate nss ext vdev\n");
-@@ -1590,8 +1593,8 @@ static int ath11k_nss_ext_vdev_alloc(str
+@@ -1785,8 +1788,8 @@ static int ath11k_nss_ext_vdev_alloc(str
  
  	arvif->nss.if_num = if_num;
  	ath11k_dbg(ab, ATH11K_DBG_NSS_WDS,
@@ -73,7 +77,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  
  	return 0;
  }
-@@ -1620,7 +1623,7 @@ int ath11k_nss_ext_vdev_create(struct at
+@@ -1815,7 +1818,7 @@ int ath11k_nss_ext_vdev_create(struct at
  		return -EINVAL;
  	}
  
@@ -82,7 +86,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	if (ret)
  		return ret;
  
-@@ -1733,6 +1736,86 @@ free:
+@@ -1940,6 +1943,86 @@ free:
  	return ret;
  }
  
@@ -182,7 +186,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	/* WDS cfg should be done only once for ext vdev */
  	bool wds_cfg_done;
  	bool created;
-@@ -243,6 +247,9 @@ void ath11k_nss_ext_vdev_unregister(stru
+@@ -249,6 +253,9 @@ void ath11k_nss_ext_vdev_unregister(stru
  int ath11k_nss_ext_vdev_up(struct ath11k_vif *arvif);
  int ath11k_nss_ext_vdev_down(struct ath11k_vif *arvif);
  void ath11k_nss_ext_vdev_delete(struct ath11k_vif *arvif);
@@ -192,7 +196,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  int ath11k_nss_set_peer_sec_type(struct ath11k *ar, struct ath11k_peer *peer,
  				 struct ieee80211_key_conf *key_conf);
  void ath11k_nss_update_sta_stats(struct ath11k_vif *arvif,
-@@ -375,6 +382,18 @@ static inline int ath11k_nss_ext_vdev_do
+@@ -381,6 +388,18 @@ static inline int ath11k_nss_ext_vdev_do
  {
  	return 0;
  }

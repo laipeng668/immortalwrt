@@ -1,13 +1,19 @@
- drivers/net/wireless/ath/ath11k/core.c  |  4 ++--
- drivers/net/wireless/ath/ath11k/dp_rx.c |  6 +++---
- drivers/net/wireless/ath/ath11k/mac.c   |  2 +-
- drivers/net/wireless/ath/ath11k/nss.c   | 20 ++++++++++----------
- drivers/net/wireless/ath/ath11k/nss.h   |  4 ++--
- 5 files changed, 18 insertions(+), 18 deletions(-)
+Subject: [PATCH] ath11k add kernel 6_12
+
+Refresh the kernel API compatibility hunks around the corrected DMA, VLAN
+and NSS callback paths. Retain the noncoherent DMA allocation interface and
+the existing kernel-version adaptations.
+---
+ drivers/net/wireless/ath/ath11k/core.c  |    4 ++--
+ drivers/net/wireless/ath/ath11k/dp_rx.c |    6 +++---
+ drivers/net/wireless/ath/ath11k/mac.c   |    2 +-
+ drivers/net/wireless/ath/ath11k/nss.c   |   18 +++++++++---------
+ drivers/net/wireless/ath/ath11k/nss.h   |    4 ++--
+ 5 files changed, 17 insertions(+), 17 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/core.c
 +++ b/drivers/net/wireless/ath/ath11k/core.c
-@@ -2958,13 +2958,13 @@ err_sc_free:
+@@ -2968,13 +2968,13 @@ err_sc_free:
  }
  EXPORT_SYMBOL(ath11k_core_alloc);
  
@@ -25,7 +31,7 @@
  }
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1823,7 +1823,7 @@ struct htt_ppdu_stats_info *ath11k_dp_ht
+@@ -1832,7 +1832,7 @@ struct htt_ppdu_stats_info *ath11k_dp_ht
  	return ppdu_info;
  }
  
@@ -34,7 +40,7 @@
  				  struct htt_ppdu_user_stats* usr_stats)
  {
  	peer->ppdu_stats_delayba.reserved0 = usr_stats->rate.reserved0;
-@@ -1838,7 +1838,7 @@ void ath11k_copy_to_delay_stats(struct a
+@@ -1847,7 +1847,7 @@ void ath11k_copy_to_delay_stats(struct a
  	peer->delayba_flag = true;
  }
  
@@ -43,7 +49,7 @@
  			struct htt_ppdu_user_stats* usr_stats)
  {
  	usr_stats->rate.reserved0 = peer->ppdu_stats_delayba.reserved0;
-@@ -6316,7 +6316,7 @@ static void ath11k_dp_rx_mon_dest_proces
+@@ -6388,7 +6388,7 @@ static void ath11k_dp_rx_mon_dest_proces
  	}
  }
  
@@ -54,7 +60,7 @@
  	u32 num_users;
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -719,7 +719,7 @@ u8 ath11k_mac_get_target_pdev_id(struct
+@@ -720,7 +720,7 @@ u8 ath11k_mac_get_target_pdev_id(struct
  		return ar->ab->target_pdev_ids[0].pdev_id;
  }
  
@@ -65,7 +71,7 @@
  	int i;
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -307,7 +307,7 @@ static void ath11k_nss_peer_mem_free(str
+@@ -516,7 +516,7 @@ static void ath11k_nss_peer_msg_complete
  
  /*-----------------------------Events/Callbacks------------------------------*/
  
@@ -74,7 +80,7 @@
  {
  	u32 msg_type = msg->cm.type;
  	enum nss_cmn_response response = msg->cm.response;
-@@ -418,7 +418,7 @@ void ath11k_nss_wifili_event_receive(voi
+@@ -622,7 +622,7 @@ void ath11k_nss_wifili_event_receive(voi
  	}
  }
  
@@ -83,16 +89,16 @@
  {
  	struct ath11k_vif *arvif;
  	struct ath11k_peer *peer = NULL;
-@@ -517,7 +517,7 @@ static inline void ath11k_nss_wifili_ext
+@@ -720,7 +720,7 @@ static inline void ath11k_nss_wifili_ext
  	ath11k_nss_wifili_ext_callback_fn(ab, skb, napi);
  }
  
 -void ath11k_nss_vdev_cfg_cb(void *app_data, struct nss_cmn_msg *msg)
 +static void ath11k_nss_vdev_cfg_cb(void *app_data, struct nss_cmn_msg *msg)
  {
- 	struct ath11k_vif *arvif = (struct ath11k_vif *)app_data;
- 
-@@ -1004,7 +1004,7 @@ ath11k_nss_ext_vdev_data_receive(struct
+ 	ath11k_nss_cfg_complete(msg, false);
+ }
+@@ -1214,7 +1214,7 @@ ath11k_nss_ext_vdev_data_receive(struct
  #ifdef CPTCFG_ATH11K_NSS_MESH_SUPPORT
  /*------Mesh offload------*/
  
@@ -101,16 +107,7 @@
  					  struct nss_cmn_msg *cmn_msg)
  {
  	struct nss_wifi_mesh_msg *msg = (struct nss_wifi_mesh_msg *)cmn_msg;
-@@ -1865,7 +1865,7 @@ int ath11k_nss_dump_mpp_request(struct a
- 	return 0;
- }
- 
--void ath11k_nss_mpp_timer_cb(struct timer_list *timer)
-+static void ath11k_nss_mpp_timer_cb(struct timer_list *timer)
- {
- 	nss_wifi_mesh_msg_callback_t msg_cb;
- 	struct arvif_nss *nss = from_timer(nss, timer,mpp_expiry_timer);
-@@ -2536,7 +2536,7 @@ static void ath11k_nss_mesh_vdev_free(st
+@@ -2774,7 +2774,7 @@ static void ath11k_nss_mesh_vdev_free(st
  }
  #endif
  
@@ -119,7 +116,7 @@
  {
  	struct ath11k_base *ab = arvif->ar->ab;
  	nss_tx_status_t status;
-@@ -2568,7 +2568,7 @@ void ath11k_nss_vdev_free(struct ath11k_
+@@ -2806,7 +2806,7 @@ void ath11k_nss_vdev_free(struct ath11k_
  }
  
  #ifdef CPTCFG_ATH11K_NSS_MESH_SUPPORT
@@ -128,7 +125,7 @@
  {
  	struct arvif_nss *nss;
  
-@@ -4552,7 +4552,7 @@ void ath11k_nss_peer_stats_enable(struct
+@@ -4829,7 +4829,7 @@ void ath11k_nss_peer_stats_enable(struct
  			     ATH11K_NSS_STATS_ENABLE);
  }
  
@@ -137,7 +134,7 @@
  {
  	struct ath11k *ar = ab->pdevs[radio_id].ar;
  	struct nss_wifili_pdev_init_msg *pdevmsg;
-@@ -4686,7 +4686,7 @@ dealloc:
+@@ -4945,7 +4945,7 @@ dealloc:
  /* TODO : Check if start, reset and stop messages can be done using single function as
   * body is similar, having it now for clarity */
  
@@ -146,7 +143,7 @@
  {
  	struct nss_wifili_msg *wlmsg = NULL;
  	nss_wifili_msg_callback_t msg_cb;
-@@ -4851,7 +4851,7 @@ free:
+@@ -5043,7 +5043,7 @@ free:
  	return ret;
  }
  

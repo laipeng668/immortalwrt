@@ -28,15 +28,19 @@ Issue 2:
 Unlock mutex lock before waiting for completion of
 ab->reconfigure_complete and acquiring lock again.
 
+Refresh restart and recovery contexts after deferred VLAN state is changed
+to stable peer identifiers. The original mutex and Q6 recovery fixes remain
+in place.
+
 Signed-off-by: Rajat Soni <quic_rajson@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/mac.c | 2 ++
- drivers/net/wireless/ath/ath11k/qmi.c | 2 ++
- 2 files changed, 4 insertions(+)
+ drivers/net/wireless/ath/ath11k/mac.c |    2 ++
+ drivers/net/wireless/ath/ath11k/qmi.c |    2 ++
+ 2 files changed, 4 insertions(+), 0 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -7049,7 +7049,9 @@ static int ath11k_mac_op_start(struct ie
+@@ -7042,7 +7042,9 @@ static int ath11k_mac_op_start(struct ie
  		break;
  	case ATH11K_STATE_RESTARTING:
  		ar->state = ATH11K_STATE_RESTARTED;

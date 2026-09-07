@@ -6,17 +6,18 @@ Subject: [PATCH] backport: Compile fix
 Adding these changes to fix compilation issue due to
 package upgrade
 
+Refresh the common 802.3 transmit contexts for the 7.2 NSS integration. Keep
+the ordinary fallback arguments until the control-port patch introduces
+info_flags, ctrl_flags and cookie; their preservation is implemented
+together with that interface change.
+
 Signed-off-by: Tamizh Chelvam <tamizhr@codeaurora.org>
 Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
 ---
- include/linux/backport-refcount.h        |  4 +--
- include/net/fq.h                         | 10 +++++-
- net/mac80211/cfg.c                       |  4 +--
- net/mac80211/ieee80211_i.h               |  4 ++-
- net/mac80211/iface.c                     |  2 --
- net/mac80211/rx.c                        | 23 +++++++++-----
- net/mac80211/tx.c                        | 54 ++++++++++++++++++++++----------
- 7 files changed, 40 insertions(+), 23 deletions(-)
+ net/mac80211/ieee80211_i.h |    1 +
+ net/mac80211/tx.c          |   40 +++++++++++++++++++++-------------------
+ 2 files changed, 22 insertions(+), 19 deletions(-)
+
 --- a/net/mac80211/ieee80211_i.h
 +++ b/net/mac80211/ieee80211_i.h
 @@ -225,6 +225,7 @@ enum ieee80211_rx_flags {
@@ -29,7 +30,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	struct ieee80211_local *local;
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -4795,21 +4795,20 @@ static void ieee80211_8023_xmit(struct i
+@@ -4780,21 +4780,20 @@ static void ieee80211_8023_xmit(struct i
  
  	ieee80211_aggr_check(sdata, sta, skb);
  
@@ -63,7 +64,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	}
  
  	skb = ieee80211_tx_skb_fixup(skb, ieee80211_sdata_netdev_features(sdata));
-@@ -4890,7 +4889,7 @@ static void __ieee80211_subif_start_xmit
+@@ -4875,7 +4874,7 @@ static void __ieee80211_subif_start_xmit
  	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
  	struct ethhdr *ehdr = (struct ethhdr *)skb->data;
  	struct ieee80211_link_data *link;
@@ -72,7 +73,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	struct sta_info *sta;
  
  	rcu_read_lock();
-@@ -4900,6 +4899,12 @@ static void __ieee80211_subif_start_xmit
+@@ -4885,6 +4884,12 @@ static void __ieee80211_subif_start_xmit
  		goto out;
  	}
  
@@ -85,7 +86,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	/*
  	 * If STA is invalid, use the multicast offload path when applicable.
  	 * In AP mode, drop the frame if there are no associated stations;
-@@ -4929,6 +4934,7 @@ static void __ieee80211_subif_start_xmit
+@@ -4915,6 +4920,7 @@ static void __ieee80211_subif_start_xmit
  		goto skip_offload;
  
  	sk_pacing_shift_update(skb->sk, sdata->local->hw.tx_sk_pacing_shift);
@@ -93,7 +94,7 @@ Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
  	ieee80211_8023_xmit(sdata, dev, sta, key, skb);
  	goto out;
  
-@@ -6708,11 +6714,7 @@ int ieee80211_tx_control_port(struct wip
+@@ -6694,11 +6700,7 @@ int ieee80211_tx_control_port(struct wip
  start_xmit:
  	local_bh_disable();
  
