@@ -1,9 +1,16 @@
- drivers/net/wireless/ath/ath11k/nss.c | 24 ++++--------------------
- 1 file changed, 4 insertions(+), 20 deletions(-)
+Subject: [PATCH] ath11k NSS use ath11k_nss_get_arvif_from_dev
+
+Use the shared netdev-to-arvif lookup in the revised receive callback. Keep
+the MEC Ethernet-address check after successful undecapsulation and only for
+an Ethernet result, so RAW/native frames are not interpreted as Ethernet
+headers.
+---
+ drivers/net/wireless/ath/ath11k/nss.c |   28 +++-------------------------
+ 1 file changed, 3 insertions(+), 25 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -907,36 +907,20 @@ ath11k_nss_vdev_data_receive(struct net_
+@@ -1118,36 +1118,20 @@ ath11k_nss_vdev_data_receive(struct net_
  			     __attribute__((unused)) struct napi_struct *napi)
  {
  	struct wireless_dev *wdev = NULL;
@@ -43,12 +50,16 @@
  	ab = arvif->ar->ab;
  
  	skb->dev = dev;
-@@ -945,7 +929,7 @@ ath11k_nss_vdev_data_receive(struct net_
+@@ -1156,12 +1140,6 @@ ath11k_nss_vdev_data_receive(struct net_
  	ath11k_dbg_dump(ab, ATH11K_DBG_DP_RX, "", "dp rx msdu from nss: ",
  			skb->data, skb->len);
  
 -	if ((vif->type == NL80211_IFTYPE_STATION && wdev->use_4addr) &&
-+	if ((arvif->vif->type == NL80211_IFTYPE_STATION && wdev->use_4addr) &&
- 	     ath11k_nss_vdev_data_receive_mec_check(arvif->ar, skb)) {
- 		dev_kfree_skb_any(skb);
- 		return;
+-	     ath11k_nss_vdev_data_receive_mec_check(arvif->ar, skb)) {
+-		dev_kfree_skb_any(skb);
+-		return;
+-	}
+-
+ 	ret = ath11k_nss_undecap(arvif, skb, &data_offs, &eth_decap);
+ 	if (ret) {
+ 		ath11k_warn(ab, "error in nss rx undecap, type %d err %d\n",

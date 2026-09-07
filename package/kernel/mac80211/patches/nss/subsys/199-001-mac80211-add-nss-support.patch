@@ -7,23 +7,28 @@ Add Support for NSS Offload if the HW supports it.
 New flag is introduced to indicate HW support for NSS
 offload
 
+Refresh the NSS integration against the 7.2 transmit path after removing the
+blanket TKIP relaxation. Keep rate-selection changes with the later
+last_rate patch, which introduces the is_rx_bitrate argument used by that
+fix.
+
 Signed-off-by: Sriram R <srirrama@codeaurora.org>
 ---
- backport-include/linux/netdevice.h |  2 ++
- include/net/mac80211.h             | 35 +++++++++++++++++++++++++++++++++++
- local-symbols                      |  1 +
- net/mac80211/Kconfig               |  9 +++++++++
- net/mac80211/cfg.c                 |  6 +++++-
- net/mac80211/debugfs.c             |  1 +
- net/mac80211/driver-ops.h          | 17 +++++++++++++++++
- net/mac80211/ieee80211_i.h         |  2 ++
- net/mac80211/iface.c               |  3 ++-
- net/mac80211/main.c                | 29 +++++++++++++++++++++++------
- net/mac80211/sta_info.c            |  3 +++
- net/mac80211/trace.h               | 32 ++++++++++++++++++++++++++++++++
- net/mac80211/tx.c                  | 21 ++++++++++++++++++---
- net/mac80211/util.c                | 16 ++++++++++++++++
- net/wireless/util.c                |  3 +++
+ backport-include/linux/netdevice.h |    2 ++
+ include/net/mac80211.h             |   35 +++++++++++++++++++++++++++++++++++
+ local-symbols                      |    1 +
+ net/mac80211/Kconfig               |    9 +++++++++
+ net/mac80211/cfg.c                 |    6 +++++-
+ net/mac80211/debugfs.c             |    1 +
+ net/mac80211/driver-ops.h          |   17 +++++++++++++++++
+ net/mac80211/ieee80211_i.h         |    2 ++
+ net/mac80211/iface.c               |    3 ++-
+ net/mac80211/main.c                |   29 +++++++++++++++++++++++------
+ net/mac80211/sta_info.c            |    3 +++
+ net/mac80211/trace.h               |   32 ++++++++++++++++++++++++++++++++
+ net/mac80211/tx.c                  |   21 ++++++++++++++++++---
+ net/mac80211/util.c                |   16 ++++++++++++++++
+ net/wireless/util.c                |    3 +++
  15 files changed, 169 insertions(+), 11 deletions(-)
 
 --- a/backport-include/linux/netdevice.h

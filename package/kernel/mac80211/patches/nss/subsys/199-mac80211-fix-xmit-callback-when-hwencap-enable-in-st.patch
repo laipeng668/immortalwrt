@@ -11,14 +11,18 @@ when we use DUT as a STA with encryption(psk2+ccmp).
 Added hardware encap check to filter out ethernet mode
 packets to follow ieee80211_subif_start_xmit_8023 callback.
 
+Refresh the transmit callback context after the NSS integration changes. The
+netdev callback still follows the current encapsulation-offload setting when
+station mode is reconfigured.
+
 Signed-off-by: P Praneesh <ppranees@codeaurora.org>
 ---
- net/mac80211/tx.c | 8 +++++++-
+ net/mac80211/tx.c |    8 +++++++-
  1 file changed, 7 insertions(+), 1 deletion(-)
 
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -6640,7 +6640,13 @@ int ieee80211_tx_control_port(struct wip
+@@ -6641,7 +6641,13 @@ int ieee80211_tx_control_port(struct wip
  
  start_xmit:
  	local_bh_disable();

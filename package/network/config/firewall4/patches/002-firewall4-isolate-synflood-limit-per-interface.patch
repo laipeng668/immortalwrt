@@ -1,0 +1,353 @@
+Subject: [PATCH] firewall4: isolate SYN flood rate limits by ingress interface
+
+The input hook sends new TCP connections from every zone through one shared
+token bucket. A burst of SYNs on WAN can therefore consume the entire allowance
+before LAN management connections reach their zone's input rules. SSH, HTTP and
+SMB then time out while ICMP and established/forwarded traffic continue working.
+
+Key the existing rate limiter by input interface name. Each interface retains
+the configured rate and burst, and excess SYNs still reach the existing drop
+rule. Limit the dynamic set size, without expiring active limiter state or
+changing zone policy. Interface names also avoid accumulating entries when a
+PPPoE interface is recreated with a new ifindex.
+
+Destroy the old meter on every ruleset load, including when SYN flood protection
+is disabled. Flushing table rules leaves named set elements intact, including
+their old rate/burst state. Recreate the meter only when the limiter is enabled,
+so configuration changes take effect and disabling protection leaves no stale
+set behind. The destroy command also succeeds when the set does not yet exist.
+
+Update the existing ruleset fixtures to expect unconditional meter cleanup.
+
+--- a/root/usr/share/firewall4/templates/ruleset.uc
++++ b/root/usr/share/firewall4/templates/ruleset.uc
+@@ -7,6 +7,7 @@
+ 
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ {% if (fw4.check_flowtable()): %}
+ delete flowtable inet fw4 ft
+ {% endif %}
+@@ -212,8 +213,9 @@ table inet fw4 {
+ 	let b = fw4.default_option("synflood_burst");
+ %}
+ 	chain syn_flood {
+-		limit rate {{ r.rate }}/{{ r.unit }}
+-		{%- if (b): %} burst {{ b }} packets{% endif %} return comment "!fw4: Accept SYN packets below rate-limit"
++		# Keep WAN SYN bursts from consuming another interface's allowance.
++		meter syn_flood_ifaces size 1024 { meta iifname limit rate {{ r.rate }}/{{ r.unit }}
++		{%- if (b): %} burst {{ b }} packets{% endif %} } return comment "!fw4: Accept SYN packets below per-interface rate-limit"
+ 		drop comment "!fw4: Drop excess packets"
+ 	}
+ 
+--- a/tests/01_configuration/01_ruleset
++++ b/tests/01_configuration/01_ruleset
+@@ -18,6 +18,7 @@ Testing the ruleset rendered from the de
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+@@ -151,7 +152,8 @@ table inet fw4 {
+ 	}
+ 
+ 	chain syn_flood {
+-		limit rate 25/second burst 50 packets return comment "!fw4: Accept SYN packets below rate-limit"
++		# Keep WAN SYN bursts from consuming another interface's allowance.
++		meter syn_flood_ifaces size 1024 { meta iifname limit rate 25/second burst 50 packets } return comment "!fw4: Accept SYN packets below per-interface rate-limit"
+ 		drop comment "!fw4: Drop excess packets"
+ 	}
+ 
+--- a/tests/01_configuration/02_rule_order
++++ b/tests/01_configuration/02_rule_order
+@@ -64,6 +64,7 @@ and that rules are rendered in the order
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/01_policies
++++ b/tests/02_zones/01_policies
+@@ -63,6 +63,7 @@ Testing that zone policies are properly
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/02_masq
++++ b/tests/02_zones/02_masq
+@@ -67,6 +67,7 @@ Testing that zone masquerading is proper
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/03_masq_src_dest_restrictions
++++ b/tests/02_zones/03_masq_src_dest_restrictions
+@@ -93,6 +93,7 @@ Testing that zone masquerading restricti
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/04_masq_allow_invalid
++++ b/tests/02_zones/04_masq_allow_invalid
+@@ -45,6 +45,7 @@ Testing that dropping of invalid conntra
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/04_wildcard_devices
++++ b/tests/02_zones/04_wildcard_devices
+@@ -84,6 +84,7 @@ Test that wildcard devices are properly
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/05_subnet_mask_matches
++++ b/tests/02_zones/05_subnet_mask_matches
+@@ -52,6 +52,7 @@ sets, so various permutations of rules n
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/06_family_selections
++++ b/tests/02_zones/06_family_selections
+@@ -86,6 +86,7 @@ specified or not.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/07_helpers
++++ b/tests/02_zones/07_helpers
+@@ -80,6 +80,7 @@ Testing zone helper assignments
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/02_zones/08_log_limit
++++ b/tests/02_zones/08_log_limit
+@@ -185,6 +185,7 @@ Test that configured zone log limits are
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/01_direction
++++ b/tests/03_rules/01_direction
+@@ -48,6 +48,7 @@ on src and dest options.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/02_enabled
++++ b/tests/03_rules/02_enabled
+@@ -45,6 +45,7 @@ Testing that not enabled rules are ignor
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/03_constraints
++++ b/tests/03_rules/03_constraints
+@@ -81,6 +81,7 @@ Testing various option constraints.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/04_icmp
++++ b/tests/03_rules/04_icmp
+@@ -54,6 +54,7 @@ Testing handling of ICMP related options
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/05_mangle
++++ b/tests/03_rules/05_mangle
+@@ -149,6 +149,7 @@ depending on the src and dest options.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/06_subnet_mask_matches
++++ b/tests/03_rules/06_subnet_mask_matches
+@@ -101,6 +101,7 @@ permutations of rules need to be emitted
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/07_redirect
++++ b/tests/03_rules/07_redirect
+@@ -133,6 +133,7 @@ Test various address selection rules in
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/08_family_inheritance
++++ b/tests/03_rules/08_family_inheritance
+@@ -162,6 +162,7 @@ Testing various option constraints.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/09_time
++++ b/tests/03_rules/09_time
+@@ -116,6 +116,7 @@ Ensure that time constraints are properl
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/10_notrack
++++ b/tests/03_rules/10_notrack
+@@ -71,6 +71,7 @@ the src and dest options.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/11_log
++++ b/tests/03_rules/11_log
+@@ -88,6 +88,7 @@ string uses that string verbatim as log
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/03_rules/12_mark
++++ b/tests/03_rules/12_mark
+@@ -75,6 +75,7 @@ Testing various MARK rules.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/04_forwardings/01_family_selections
++++ b/tests/04_forwardings/01_family_selections
+@@ -60,6 +60,7 @@ Test that the zone family is honoured wh
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/05_ipsets/01_declaration
++++ b/tests/05_ipsets/01_declaration
+@@ -46,6 +46,7 @@ Testing an ipset declaration.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/05_ipsets/02_usage
++++ b/tests/05_ipsets/02_usage
+@@ -104,6 +104,7 @@ Linux version 5.10.113 (jow@j7) (mipsel-
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/06_includes/01_nft_includes
++++ b/tests/06_includes/01_nft_includes
+@@ -126,6 +126,7 @@ Testing the correct placement of potenti
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ include "/usr/share/nftables.d/include-ruleset-start.nft"
+ 
+--- a/tests/06_includes/02_firewall.user_include
++++ b/tests/06_includes/02_firewall.user_include
+@@ -67,6 +67,7 @@ option to be marked compatible.
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/06_includes/04_disabled_include
++++ b/tests/06_includes/04_disabled_include
+@@ -73,6 +73,7 @@ Testing that include sections with `opti
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#
+--- a/tests/06_includes/05_automatic_includes
++++ b/tests/06_includes/05_automatic_includes
+@@ -73,6 +73,7 @@ Testing that /usr/share/nftables.d/ incl
+ -- Expect stdout --
+ table inet fw4
+ flush table inet fw4
++destroy set inet fw4 syn_flood_ifaces
+ 
+ table inet fw4 {
+ 	#

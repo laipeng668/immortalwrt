@@ -19,9 +19,9 @@ Implementation consists of:
 
 Signed-off-by: Muna Sinada <msinada@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/wmi.c | 73 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- drivers/net/wireless/ath/ath11k/wmi.h | 12 ++++++++++++
- 2 files changed, 85 insertions(+)
+ drivers/net/wireless/ath/ath11k/wmi.c |   76 +++++++++++++++++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/wmi.h |   12 +++++
+ 2 files changed, 88 insertions(+)
 
 --- a/drivers/net/wireless/ath/ath11k/wmi.c
 +++ b/drivers/net/wireless/ath/ath11k/wmi.c
@@ -34,7 +34,7 @@ Signed-off-by: Muna Sinada <msinada@codeaurora.org>
  	[WMI_TAG_11D_NEW_COUNTRY_EVENT] = {
  		.min_len = sizeof(struct wmi_11d_new_cc_ev) },
  	[WMI_TAG_PER_CHAIN_RSSI_STATS] = {
-@@ -8994,6 +8996,74 @@ static void ath11k_wmi_parse_cfr_capture
+@@ -8994,6 +8996,77 @@ static void ath11k_wmi_parse_cfr_capture
  			   "failed to process cfr capture ret = %d\n", ret);
  }
  
@@ -64,19 +64,20 @@ Signed-off-by: Muna Sinada <msinada@codeaurora.org>
 +	ath11k_dbg(ab, ATH11K_DBG_WMI,
 +		   "Update MU-EDCA parameters for pdev:%d\n", ev->pdev_id);
 +
++	rcu_read_lock();
 +	ar = ath11k_mac_get_ar_by_pdev_id(ab, ev->pdev_id);
 +	if (!ar) {
 +		ath11k_warn(ab,
 +			    "MU-EDCA parameter change in invalid pdev %d\n",
 +			    ev->pdev_id);
-+		goto exit;
++		goto unlock;
 +	}
 +
 +	params = kzalloc(sizeof(*params), GFP_ATOMIC);
 +	if (!params) {
 +		ath11k_warn(ab,
 +			"Failed to allocate memory for updated MU-EDCA Parameters");
-+		goto exit;
++		goto unlock;
 +	}
 +
 +	params->ac_be.aifsn = ev->aifsn[0];
@@ -102,6 +103,8 @@ Signed-off-by: Muna Sinada <msinada@codeaurora.org>
 +	ieee80211_update_muedca_params(ar->hw, params, GFP_ATOMIC);
 +
 +	kfree(params);
++unlock:
++	rcu_read_unlock();
 +exit:
 +	kfree(tb);
 +}
@@ -109,7 +112,7 @@ Signed-off-by: Muna Sinada <msinada@codeaurora.org>
  static void ath11k_wmi_tlv_op_rx(struct ath11k_base *ab, struct sk_buff *skb)
  {
  	struct wmi_cmd_hdr *cmd_hdr;
-@@ -9112,6 +9182,9 @@ static void ath11k_wmi_tlv_op_rx(struct
+@@ -9112,6 +9185,9 @@ static void ath11k_wmi_tlv_op_rx(struct
  	case WMI_11D_NEW_COUNTRY_EVENTID:
  		ath11k_reg_11d_new_cc_event(ab, skb);
  		break;

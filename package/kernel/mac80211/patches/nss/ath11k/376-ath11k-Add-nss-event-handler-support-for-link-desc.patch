@@ -9,14 +9,18 @@ link descriptor which used for fragmentation. This needs to be
 handled to release the link descriptor back to hardware for
 other usage.
 
+Refresh the link-descriptor event handler after mesh capability replies are
+routed through the cookie-matched waiter. Each switch branch retains its own
+break, and descriptor returns keep their existing NSS ownership handling.
+
 Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/nss.c | 41 +++++++++++++++++++++++++++++++++++++++++
- 1 file changed, 41 insertions(+)
+ drivers/net/wireless/ath/ath11k/nss.c |   41 ++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 41 insertions(+), 0 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -101,6 +101,43 @@ static void ath11k_nss_wifili_stats_sync
+@@ -303,6 +303,43 @@ static void ath11k_nss_wifili_stats_sync
  	spin_unlock_bh(&ab->base_lock);
  }
  
@@ -54,15 +58,15 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 +
 +exit:
 +	ath11k_hal_srng_access_end(ab, srng);
-+	spin_unlock(&srng->lock);
++	spin_unlock_bh(&srng->lock);
 +}
 +
  static void ath11k_nss_get_peer_stats(struct ath11k_base *ab, struct nss_wifili_peer_stats *stats)
  {
  	struct ath11k_peer *peer;
-@@ -369,6 +406,10 @@ void ath11k_nss_wifili_event_receive(str
- 		ath11k_dbg(ab, ATH11K_DBG_NSS_MESH, "nss wifili mesh capability response %d\n",
- 			   ab->nss.mesh_nss_offload_enabled);
+@@ -573,6 +610,10 @@ void ath11k_nss_wifili_event_receive(str
+ 	case NSS_WIFILI_SEND_MESH_CAPABILITY_INFO:
+ 		ath11k_nss_cfg_complete(&msg->cm, msg->msg.cap_info.mesh_enable);
  		break;
 +	case NSS_WIFILI_LINK_DESC_INFO_MSG:
 +		ath11k_nss_wifili_link_desc_return(ab,
