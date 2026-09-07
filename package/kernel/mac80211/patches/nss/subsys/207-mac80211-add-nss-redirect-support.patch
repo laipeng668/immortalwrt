@@ -19,14 +19,21 @@ Verified both in nwifi and ethernet mode by running tcp and udp
 traffic.
 
 Co-developed by: Sriram R <srirrama@codeaurora.org>
+
+NSS redirect can supply an skb before protocol classification. Check that
+the linear data contains an Ethernet header before reading h_proto, set
+skb->protocol, and require a complete IPv4 or IPv6 header before deriving
+the priority. This prevents short redirected packets from being read past
+the available header.
+
 Signed-off-by: Sriram R <srirrama@codeaurora.org>
 Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
 ---
- net/mac80211/ieee80211_i.h |  6 ++++++
- net/mac80211/iface.c       | 56 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- net/mac80211/rx.c          | 58 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- net/mac80211/tx.c          | 36 ++++++++++++++++++++++++++++++++++++
- 4 files changed, 156 insertions(+)
+ net/mac80211/ieee80211_i.h |    6 ++++
+ net/mac80211/iface.c       |   73 ++++++++++++++++++++++++++++++++++++++++
+ net/mac80211/rx.c          |   65 ++++++++++++++++++++++++++++++++++++
+ net/mac80211/tx.c          |   42 ++++++++++++++++++++++++
+ 4 files changed, 186 insertions(+), 0 deletions(-)
 
 --- a/net/mac80211/ieee80211_i.h
 +++ b/net/mac80211/ieee80211_i.h
@@ -45,7 +52,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	} debugfs;
  #endif
 +#ifdef CPTCFG_MAC80211_NSS_SUPPORT
-+	struct nss_virt_if_handle *nssctx;
++	struct nss_virt_if_handle __rcu *nssctx;
 +#endif
  
  	u32 tx_handlers_drop;
@@ -65,21 +72,36 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  /**
   * DOC: Interface list locking
   *
-@@ -855,6 +861,13 @@ static int ieee80211_stop(struct net_dev
- 			dev_close(vlan->dev);
- 	}
+@@ -867,6 +873,28 @@ static int ieee80211_stop(struct net_dev
+ 
+ 	ieee80211_do_stop(sdata, true);
  
 +#ifdef CPTCFG_MAC80211_NSS_SUPPORT
-+	if (sdata->nssctx) {
-+		nss_virt_if_destroy_sync(sdata->nssctx);
-+		sdata_info(sdata, "Destroyed NSS virtual interface\n");
++	{
++		struct nss_virt_if_handle *nssctx;
++		nss_tx_status_t status;
++
++		nssctx = rcu_replace_pointer(sdata->nssctx, NULL, true);
++		if (nssctx) {
++			/* Stop host submissions before releasing the NSS handle. */
++			synchronize_net();
++			/* Clear our callback while preserving the netdev registration
++			 * required by nss_virt_if_destroy_sync().
++			 */
++			nss_virt_if_register(nssctx, NULL, dev);
++			synchronize_net();
++			status = nss_virt_if_destroy_sync(nssctx);
++			synchronize_net();
++			if (status != NSS_TX_SUCCESS)
++				sdata_err(sdata, "NSS interface destroy failed: %d\n", status);
++		}
 +	}
 +#endif
 +
- 	guard(wiphy)(sdata->local->hw.wiphy);
+ 	return 0;
+ }
  
- 	wiphy_work_cancel(sdata->local->hw.wiphy, &sdata->activate_links_work);
-@@ -1358,6 +1371,34 @@ void ieee80211_del_virtual_monitor(struc
+@@ -1358,6 +1386,34 @@ void ieee80211_del_virtual_monitor(struc
  	kfree(sdata);
  }
  
@@ -94,14 +116,14 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
 +	struct ieee80211_sub_if_data *sdata;
 +
 +	if (!dev) {
-+		kfree(sk_buff);
++		dev_kfree_skb_any(sk_buff);
 +		return;
 +	}
 +
 +	netdev = (struct net_device *)dev;
 +	sdata = netdev_priv(netdev);
-+	if (sdata->dev != dev) {
-+		kfree(sk_buff);
++	if (sdata->dev != dev || !ieee80211_sdata_running(sdata)) {
++		dev_kfree_skb_any(sk_buff);
 +		return;
 +	}
 +	skb = (struct sk_buff *)sk_buff;
@@ -114,17 +136,19 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  /*
   * NOTE: Be very careful when changing this function, it must NOT return
   * an error on interface type changes that have been pre-checked, so most
-@@ -1598,6 +1639,21 @@ int ieee80211_do_open(struct wireless_de
+@@ -1598,6 +1654,23 @@ int ieee80211_do_open(struct wireless_de
  
  	ieee80211_recalc_ps(local);
  
 +#ifdef CPTCFG_MAC80211_NSS_SUPPORT
-+	sdata->nssctx = NULL;
 +	if (nss_redirect) {
-+		sdata->nssctx = nss_virt_if_create_sync(dev);
-+		if (sdata->nssctx) {
++		struct nss_virt_if_handle *nssctx;
++
++		nssctx = nss_virt_if_create_sync(dev);
++		if (nssctx) {
 +			sdata_info(sdata, "Created a NSS virtual interface\n");
-+			nss_virt_if_register(sdata->nssctx, receive_from_nss, sdata->dev);
++			nss_virt_if_register(nssctx, receive_from_nss, sdata->dev);
++			rcu_assign_pointer(sdata->nssctx, nssctx);
 +		} else {
 +			sdata_info(
 +				sdata,
@@ -138,7 +162,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	return 0;
 --- a/net/mac80211/rx.c
 +++ b/net/mac80211/rx.c
-@@ -2740,6 +2740,60 @@ static bool ieee80211_frame_allowed(stru
+@@ -2740,6 +2740,67 @@ static bool ieee80211_frame_allowed(stru
  	return true;
  }
  
@@ -169,15 +193,22 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
 +			 struct sk_buff *skb)
 +{
 +	struct ieee80211_sub_if_data *sdata = rx->sdata;
++	struct nss_virt_if_handle *nssctx;
 +	int ret;
 +
-+	if (!sdata->nssctx)
++	rcu_read_lock();
++	nssctx = rcu_dereference(sdata->nssctx);
++	if (!nssctx) {
++		rcu_read_unlock();
 +		goto out;
++	}
 +
 +	/* NSS expects ethernet header in skb data so resetting here */
 +	skb_push(skb, ETH_HLEN);
-+	ret = nss_virt_if_tx_buf(sdata->nssctx, skb);
++	ret = nss_virt_if_tx_buf(nssctx, skb);
++	rcu_read_unlock();
 +	if (ret) {
++		skb_pull(skb, ETH_HLEN);
 +		if (net_ratelimit()) {
 +			if (NSS_TX_FAILURE_NOT_ENABLED == ret)
 +			  goto out;
@@ -199,7 +230,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  static void ieee80211_deliver_skb_to_local_stack(struct sk_buff *skb,
  						 struct ieee80211_rx_data *rx)
  {
-@@ -2779,11 +2833,15 @@ static void ieee80211_deliver_skb_to_loc
+@@ -2779,11 +2840,15 @@ static void ieee80211_deliver_skb_to_loc
  			     !ether_addr_equal(ehdr->h_dest, sdata->vif.addr)))
  			ether_addr_copy(ehdr->h_dest, sdata->vif.addr);
  
@@ -217,7 +248,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -4618,6 +4618,35 @@ static void ieee80211_mlo_multicast_tx(s
+@@ -4600,6 +4600,41 @@ static void ieee80211_mlo_multicast_tx(s
  	kfree_skb(skb);
  }
  
@@ -234,14 +265,20 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
 +	 * As of now priority is handled only for IPv4 and IPv6.
 +	 */
 +
-+	if (sdata->nssctx && likely(!skb->protocol)) {
-+		skb_set_network_header(skb, 14);
++	if (sdata->nssctx && likely(!skb->protocol) &&
++	    skb_headlen(skb) >= ETH_HLEN) {
++		skb->protocol = ((struct ethhdr *)skb->data)->h_proto;
++		skb_set_network_header(skb, ETH_HLEN);
 +		switch (((struct ethhdr *)skb->data)->h_proto) {
 +		case htons(ETH_P_IP):
++			if (skb_headlen(skb) < ETH_HLEN + sizeof(struct iphdr))
++				break;
 +			skb->priority = (ipv4_get_dsfield(ip_hdr(skb)) &
 +					 0xfc) >> 5;
 +			break;
 +		case htons(ETH_P_IPV6):
++			if (skb_headlen(skb) < ETH_HLEN + sizeof(struct ipv6hdr))
++				break;
 +			skb->priority = (ipv6_get_dsfield(ipv6_hdr(skb)) &
 +					 0xfc) >> 5;
 +			break;
@@ -253,7 +290,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  /**
   * ieee80211_subif_start_xmit - netif start_xmit function for 802.3 vifs
   * @skb: packet to be sent
-@@ -4633,6 +4662,10 @@ netdev_tx_t ieee80211_subif_start_xmit(s
+@@ -4615,6 +4650,10 @@ netdev_tx_t ieee80211_subif_start_xmit(s
  	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
  	const struct ethhdr *eth = (void *)skb->data;
  
@@ -264,7 +301,7 @@ Signed-off-by: Sowmiya Sree Elavalagan <ssreeela@codeaurora.org>
  	if (likely(!is_multicast_ether_addr(eth->h_dest)))
  		goto normal;
  
-@@ -4898,6 +4931,9 @@ netdev_tx_t ieee80211_subif_start_xmit_8
+@@ -4881,6 +4920,9 @@ netdev_tx_t ieee80211_subif_start_xmit_8
  	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
  	struct ethhdr *ehdr = (struct ethhdr *)skb->data;
  

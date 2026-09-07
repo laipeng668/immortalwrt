@@ -11,13 +11,20 @@ be using 80211 xmit path.
 Metadata info in dp_tx added to notify firmware that the
 multicast/broadcast packets are encrypted in sw.
 
+Reset hal_tx_info and is_diff_encap on every TCL-ring attempt. A QoS Null
+frame requiring a different encapsulation must use the firmware metadata
+path even when skb->protocol is not ETH_P_PAE. Undo metadata and MIC padding
+before a retry, and remove the metadata offset before both HTT and TQM
+status processing. Keep these changes with the patch that introduces
+pkt_offset and the exception metadata.
+
 Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/core.h  |   1 +
- drivers/net/wireless/ath/ath11k/dp_tx.c |  80 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++---
- drivers/net/wireless/ath/ath11k/dp_tx.h | 198 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
- drivers/net/wireless/ath/ath11k/mac.c   |   3 +++
- 4 files changed, 279 insertions(+), 3 deletions(-)
+ drivers/net/wireless/ath/ath11k/core.h  |    1 +
+ drivers/net/wireless/ath/ath11k/dp_tx.c |   92 ++++++++++++++++++-
+ drivers/net/wireless/ath/ath11k/dp_tx.h |  198 ++++++++++++++++++++++++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/mac.c   |    3 +
+ 4 files changed, 290 insertions(+), 4 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/core.h
 +++ b/drivers/net/wireless/ath/ath11k/core.h
@@ -82,10 +89,21 @@ Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
 -	bool tcl_ring_retry;
 +	bool tcl_ring_retry, is_diff_encap = false;
 +	u8 align_pad, htt_meta_size = 0;
+ 	u8 tail_len = 0;
  
  	if (unlikely(test_bit(ATH11K_FLAG_CRASH_FLUSH, &ar->ab->dev_flags)))
- 		return -ESHUTDOWN;
-@@ -190,7 +228,10 @@ tcl_ring_sel:
+@@ -112,6 +150,10 @@ int ath11k_dp_tx(struct ath11k *ar, stru
+ 	ring_selector = ab->hw_params.hw_ops->get_ring_selector(skb);
+ 
+ tcl_ring_sel:
++	ti = (struct hal_tx_info) {};
++	is_diff_encap = false;
++	/* Metadata allocation on an earlier attempt may move skb->head. */
++	hdr = (void *)skb->data;
+ 	tcl_ring_retry = false;
+ 
+ 	ti.ring_id = ring_selector % num_tx_rings;
+@@ -194,7 +236,10 @@ tcl_ring_sel:
  
  	switch (ti.encap_type) {
  	case HAL_TCL_ENCAP_TYPE_NATIVE_WIFI:
@@ -97,15 +115,18 @@ Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
  		break;
  	case HAL_TCL_ENCAP_TYPE_RAW:
  		if (!test_bit(ATH11K_FLAG_RAW_MODE, &ab->dev_flags)) {
-@@ -209,6 +250,33 @@ tcl_ring_sel:
+@@ -213,6 +258,36 @@ tcl_ring_sel:
  		goto fail_remove_idr;
  	}
  
++	/* Native Wi-Fi encapsulation may have moved the MAC header. */
++	hdr = (void *)skb->data;
++
 +	/* Add metadata for sw encrypted vlan group traffic */
 +	if ((!test_bit(ATH11K_FLAG_HW_CRYPTO_DISABLED, &ar->ab->dev_flags) &&
-+	    !(info->control.flags & IEEE80211_TX_CTL_HW_80211_ENCAP) &&
++	    !(info->flags & IEEE80211_TX_CTL_HW_80211_ENCAP) &&
 +	    !info->control.hw_key && ieee80211_has_protected(hdr->frame_control)) ||
-+	    (skb->protocol == cpu_to_be16(ETH_P_PAE) && is_diff_encap)) {
++	    is_diff_encap) {
 +		/* HW requirement is that metadata should always point to a
 +		 * 8-byte aligned address. So we add alignment pad to start of
 +		 * buffer. HTT Metadata should be ensured to be multiple of 8-bytes
@@ -131,7 +152,7 @@ Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
  	ti.paddr = dma_map_single(ab->dev, skb->data, skb->len, DMA_TO_DEVICE);
  	if (unlikely(dma_mapping_error(ab->dev, ti.paddr))) {
  		atomic_inc(&ab->soc_stats.tx_err.misc_fail);
-@@ -217,7 +285,8 @@ tcl_ring_sel:
+@@ -221,7 +296,8 @@ tcl_ring_sel:
  		goto fail_remove_idr;
  	}
  
@@ -141,16 +162,20 @@ Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
  	skb_cb->paddr = ti.paddr;
  	skb_cb->vif = arvif->vif;
  	skb_cb->ar = ar;
-@@ -273,6 +342,8 @@ fail_unmap_dma:
- 	dma_unmap_single(ab->dev, ti.paddr, ti.data_len, DMA_TO_DEVICE);
+@@ -274,9 +350,11 @@ tcl_ring_sel:
+ 	return 0;
+ 
+ fail_unmap_dma:
+-	dma_unmap_single(ab->dev, ti.paddr, ti.data_len, DMA_TO_DEVICE);
++	dma_unmap_single(ab->dev, ti.paddr, skb->len, DMA_TO_DEVICE);
  
  fail_remove_idr:
 +	if (ti.pkt_offset)
 +		skb_pull(skb, ti.pkt_offset);
- 	spin_lock_bh(&tx_ring->tx_idr_lock);
- 	idr_remove(&tx_ring->txbuf_idr,
- 		   FIELD_GET(DP_TX_DESC_ID_MSDU_ID, ti.desc_id));
-@@ -349,6 +420,9 @@ ath11k_dp_tx_htt_tx_complete_buf(struct
+ 	if (tail_len) {
+ 		skb_trim(skb, skb->len - tail_len);
+ 		tail_len = 0;
+@@ -357,6 +435,9 @@ ath11k_dp_tx_htt_tx_complete_buf(struct
  		return;
  	}
  
@@ -160,6 +185,16 @@ Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
  	memset(&info->status, 0, sizeof(info->status));
  
  	if (ts->acked) {
+@@ -588,6 +669,9 @@ static void ath11k_dp_tx_complete_msdu(s
+ 		return;
+ 	}
+ 
++	if (skb_cb->pkt_offset)
++		skb_pull(msdu, skb_cb->pkt_offset);
++
+ 	info = IEEE80211_SKB_CB(msdu);
+ 	memset(&info->status, 0, sizeof(info->status));
+ 
 --- a/drivers/net/wireless/ath/ath11k/dp_tx.h
 +++ b/drivers/net/wireless/ath/ath11k/dp_tx.h
 @@ -17,6 +17,204 @@ struct ath11k_dp_htt_wbm_tx_status {
@@ -369,7 +404,7 @@ Signed-off-by: Seevalamuthu Mariappan <seevalam@codeaurora.org>
  int ath11k_dp_tx(struct ath11k *ar, struct ath11k_vif *arvif,
 --- a/drivers/net/wireless/ath/ath11k/mac.c
 +++ b/drivers/net/wireless/ath/ath11k/mac.c
-@@ -10805,6 +10805,9 @@ static int __ath11k_mac_register(struct
+@@ -10809,6 +10809,9 @@ static int __ath11k_mac_register(struct
  		 */
  		ar->hw->wiphy->interface_modes &= ~BIT(NL80211_IFTYPE_MONITOR);
  

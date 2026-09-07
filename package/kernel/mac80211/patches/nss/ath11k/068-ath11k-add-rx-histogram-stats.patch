@@ -8,15 +8,15 @@ adding a debugfs knob to reset rx stats specific to the peer.
 
 Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
 ---
- drivers/net/wireless/ath/ath11k/core.h        |  19 +++++++++++++++----
- drivers/net/wireless/ath/ath11k/debugfs_sta.c | 152 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------
- drivers/net/wireless/ath/ath11k/dp_rx.c       |  93 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------------
- drivers/net/wireless/ath/ath11k/dp_rx.h       |  19 +++++++++++++++++++
- drivers/net/wireless/ath/ath11k/hal_rx.c      |  85 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------------
- drivers/net/wireless/ath/ath11k/hal_rx.h      |  21 +++++++++++++++++++++
- drivers/net/wireless/ath/ath11k/hw.c          |  17 +++++++++++++++++
- drivers/net/wireless/ath/ath11k/hw.h          |   1 +
- 8 files changed, 350 insertions(+), 57 deletions(-)
+ drivers/net/wireless/ath/ath11k/core.h        |   19 ++-
+ drivers/net/wireless/ath/ath11k/debugfs_sta.c |  154 ++++++++++++++++++++++---
+ drivers/net/wireless/ath/ath11k/dp_rx.c       |   96 ++++++++++++++--
+ drivers/net/wireless/ath/ath11k/dp_rx.h       |   19 +++
+ drivers/net/wireless/ath/ath11k/hal_rx.c      |   89 ++++++++++----
+ drivers/net/wireless/ath/ath11k/hal_rx.h      |   21 +++
+ drivers/net/wireless/ath/ath11k/hw.c          |   18 +++
+ drivers/net/wireless/ath/ath11k/hw.h          |    1
+ 8 files changed, 358 insertions(+), 59 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/core.h
 +++ b/drivers/net/wireless/ath/ath11k/core.h
@@ -77,23 +77,29 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  #include "debugfs_htt_stats.h"
  
  void ath11k_debugfs_sta_add_tx_stats(struct ath11k_sta *arsta,
-@@ -382,8 +383,14 @@ static ssize_t ath11k_dbg_sta_dump_rx_st
+@@ -382,12 +383,20 @@ static ssize_t ath11k_dbg_sta_dump_rx_st
  	struct ath11k *ar = arsta->arvif->ar;
  	struct ath11k_rx_peer_stats *rx_stats = arsta->rx_stats;
  	int len = 0, i, retval = 0;
 -	const int size = 4096;
 +	const int size = 4 * 4096;
  	char *buf;
-+	int he_rates_avail = (rx_stats->pream_cnt[HAL_RX_PREAMBLE_11AX] > 1) ? 1 : 0;
-+	int rate_table_len = he_rates_avail ? ATH11K_RX_RATE_TABLE_11AX_NUM :
-+					      ATH11K_RX_RATE_TABLE_NUM;
++	int he_rates_avail, rate_table_len;
 +	char *legacy_rate_str[] = {"1Mbps", "2Mbps", "5.5Mbps", "6Mbps",
 +				   "9Mbps", "11Mbps", "12Mbps", "18Mbps",
 +				   "24Mbps", "36 Mbps", "48Mbps", "54Mbps"};
  
  	if (!rx_stats)
  		return -ENOENT;
-@@ -414,14 +421,6 @@ static ssize_t ath11k_dbg_sta_dump_rx_st
+ 
++	he_rates_avail = (rx_stats->pream_cnt[HAL_RX_PREAMBLE_11AX] > 1) ? 1 : 0;
++	rate_table_len = he_rates_avail ? ATH11K_RX_RATE_TABLE_11AX_NUM :
++					      ATH11K_RX_RATE_TABLE_NUM;
++
+ 	buf = kzalloc(size, GFP_KERNEL);
+ 	if (!buf)
+ 		return -ENOMEM;
+@@ -414,14 +423,6 @@ static ssize_t ath11k_dbg_sta_dump_rx_st
  			 rx_stats->num_mpdu_fcs_ok);
  	len += scnprintf(buf + len, size - len, "Num of MPDUs with FCS error: %llu\n",
  			 rx_stats->num_mpdu_fcs_err);
@@ -108,7 +114,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  	len += scnprintf(buf + len, size - len, "BCC %llu LDPC %llu\n",
  			 rx_stats->coding_count[0], rx_stats->coding_count[1]);
  	len += scnprintf(buf + len, size - len,
-@@ -436,14 +435,96 @@ static ssize_t ath11k_dbg_sta_dump_rx_st
+@@ -436,14 +437,96 @@ static ssize_t ath11k_dbg_sta_dump_rx_st
  	len += scnprintf(buf + len, size - len, "TID(0-15) Legacy TID(16):");
  	for (i = 0; i <= IEEE80211_NUM_TIDS; i++)
  		len += scnprintf(buf + len, size - len, "%llu ", rx_stats->tid_count[i]);
@@ -212,7 +218,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  	len += scnprintf(buf + len, size - len,
  			 "\nDCM: %llu\nRU: 26 %llu 52: %llu 106: %llu 242: %llu 484: %llu 996: %llu\n",
  			 rx_stats->dcm_count, rx_stats->ru_alloc_cnt[0],
-@@ -982,6 +1063,40 @@ static const struct file_operations fops
+@@ -982,6 +1065,40 @@ static const struct file_operations fops
  	.llseek = default_llseek,
  };
  
@@ -253,7 +259,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  void ath11k_debugfs_sta_op_add(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
  			       struct ieee80211_sta *sta, struct dentry *dir)
  {
-@@ -990,9 +1105,12 @@ void ath11k_debugfs_sta_op_add(struct ie
+@@ -990,9 +1107,12 @@ void ath11k_debugfs_sta_op_add(struct ie
  	if (ath11k_debugfs_is_extd_tx_stats_enabled(ar))
  		debugfs_create_file("tx_stats", 0400, dir, sta,
  				    &fops_tx_stats);
@@ -269,7 +275,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  			    &fops_htt_peer_stats);
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -2781,10 +2781,43 @@ exit:
+@@ -2781,10 +2781,46 @@ exit:
  	return total_msdu_reaped;
  }
  
@@ -301,6 +307,9 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
 +		return;
 +	}
 +
++	if (rate_idx >= ARRAY_SIZE(rx_stats->pkt_stats.rx_rate))
++		return;
++
 +	rx_stats->pkt_stats.rx_rate[rate_idx] += num_msdu;
 +	rx_stats->byte_stats.rx_rate[rate_idx] += ppdu_info->mpdu_len;
 +}
@@ -313,7 +322,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  	u32 num_msdu;
  	int i;
  
-@@ -2794,6 +2827,8 @@ static void ath11k_dp_rx_update_peer_sta
+@@ -2794,6 +2830,8 @@ static void ath11k_dp_rx_update_peer_sta
  	arsta->rssi_comb = ppdu_info->rssi_comb;
  	ewma_avg_rssi_add(&arsta->avg_rssi, ppdu_info->rssi_comb);
  
@@ -322,7 +331,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  	num_msdu = ppdu_info->tcp_msdu_count + ppdu_info->tcp_ack_msdu_count +
  		   ppdu_info->udp_msdu_count + ppdu_info->other_msdu_count;
  
-@@ -2810,18 +2845,6 @@ static void ath11k_dp_rx_update_peer_sta
+@@ -2810,18 +2848,6 @@ static void ath11k_dp_rx_update_peer_sta
  		ppdu_info->tid = IEEE80211_NUM_TIDS;
  	}
  
@@ -341,7 +350,7 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  	if (ppdu_info->ldpc < HAL_RX_SU_MU_CODING_MAX)
  		rx_stats->coding_count[ppdu_info->ldpc] += num_msdu;
  
-@@ -2858,6 +2881,52 @@ static void ath11k_dp_rx_update_peer_sta
+@@ -2858,6 +2884,52 @@ static void ath11k_dp_rx_update_peer_sta
  
  	rx_stats->rx_duration += ppdu_info->rx_duration;
  	arsta->rx_duration = rx_stats->rx_duration;
@@ -642,7 +651,15 @@ Signed-off-by: Manikanta Pubbisetty <mpubbise@codeaurora.org>
  };
  
  const struct ath11k_hw_ops wcn6750_ops = {
-@@ -1179,6 +1195,7 @@ const struct ath11k_hw_ops ipq5018_ops =
+@@ -1138,6 +1154,7 @@ const struct ath11k_hw_ops wcn6750_ops =
+ 	.rx_desc_mac_addr2_valid = ath11k_hw_ipq9074_rx_desc_mac_addr2_valid,
+ 	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq9074_rx_desc_mpdu_start_addr2,
+ 	.get_ring_selector = ath11k_hw_wcn6750_get_tcl_ring_selector,
++	.rx_desc_get_hal_mpdu_len = ath11k_hw_ipq8074_rx_desc_get_hal_mpdu_len,
+ };
+ 
+ /* IPQ5018 hw ops is similar to QCN9074 except for the dest ring remap */
+@@ -1179,6 +1196,7 @@ const struct ath11k_hw_ops ipq5018_ops =
  	.rx_desc_mac_addr2_valid = ath11k_hw_ipq9074_rx_desc_mac_addr2_valid,
  	.rx_desc_mpdu_start_addr2 = ath11k_hw_ipq9074_rx_desc_mpdu_start_addr2,
  	.get_ring_selector = ath11k_hw_ipq8074_get_tcl_ring_selector,

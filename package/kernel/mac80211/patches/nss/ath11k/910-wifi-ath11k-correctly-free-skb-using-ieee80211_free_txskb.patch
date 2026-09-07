@@ -12,24 +12,25 @@ not clean up related information in its internal data structures.
 
 Hence fix the issue by properly using ieee80211_free_txskb().
 
+Refresh the TX completion context after removing prepended exception
+metadata. Preserve ieee80211_free_txskb so mac80211 TX-status ownership is
+released through the expected helper.
+
 Signed-off-by: Sarika Sharma <quic_sarishar@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/dp_tx.c | 6 +++++-
- 1 file changed, 5 insertions(+), 1 deletion(-)
+ drivers/net/wireless/ath/ath11k/dp_tx.c |    3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
 
 --- a/drivers/net/wireless/ath/ath11k/dp_tx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_tx.c
-@@ -384,9 +384,13 @@ static void ath11k_dp_tx_free_txbuf(stru
+@@ -402,9 +402,10 @@ static void ath11k_dp_tx_free_txbuf(stru
  	skb_cb = ATH11K_SKB_CB(msdu);
  
  	dma_unmap_single(ab->dev, skb_cb->paddr, msdu->len, DMA_TO_DEVICE);
 -	dev_kfree_skb_any(msdu);
  
  	ar = ab->pdevs[mac_id].ar;
-+	if (ab->stats_disable)
-+		dev_kfree_skb_any(msdu);
-+	else
-+		ieee80211_free_txskb(ar->hw, msdu);
++	ieee80211_free_txskb(ar->hw, msdu);
 +
  	if (atomic_dec_and_test(&ar->dp.num_tx_pending))
  		wake_up(&ar->dp.tx_empty_waitq);

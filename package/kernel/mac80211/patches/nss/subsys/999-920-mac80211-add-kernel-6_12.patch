@@ -1,11 +1,17 @@
- net/mac80211/cfg.c   | 4 ++--
- net/mac80211/iface.c | 2 +-
- net/mac80211/tx.c    | 4 ++--
- 3 files changed, 5 insertions(+), 5 deletions(-)
+Subject: [PATCH] mac80211 add kernel 6_12
+
+Retain the multicast-rate field conversion and local linkage updates needed
+by the newer kernel interface. Drop the linkage change for
+ieee80211_8023_xmit_ap because that obsolete transmitter has been removed.
+---
+ net/mac80211/cfg.c   |    4 ++--
+ net/mac80211/iface.c |    2 +-
+ net/mac80211/tx.c    |    2 +-
+ 3 files changed, 4 insertions(+), 4 deletions(-)
 
 --- a/net/mac80211/cfg.c
 +++ b/net/mac80211/cfg.c
-@@ -3158,8 +3158,8 @@ static int copy_mesh_setup(struct ieee80
+@@ -3159,8 +3159,8 @@ static int copy_mesh_setup(struct ieee80
  		ifmsh->security |= IEEE80211_MESH_SEC_SECURED;
  
  	/* mcast rate setting in Mesh Node */
@@ -18,7 +24,7 @@
  	sdata->vif.bss_conf.beacon_int = setup->beacon_interval;
 --- a/net/mac80211/iface.c
 +++ b/net/mac80211/iface.c
-@@ -1381,7 +1381,7 @@ void ieee80211_del_virtual_monitor(struc
+@@ -1415,7 +1415,7 @@ void ieee80211_del_virtual_monitor(struc
  /* This callback is registered for nss redirect to receive packet exceptioned from nss in Rx path.
   * When packet does not match any of the ecm rules is redirected back here.
   */
@@ -29,7 +35,7 @@
  	struct sk_buff *skb;
 --- a/net/mac80211/tx.c
 +++ b/net/mac80211/tx.c
-@@ -4654,7 +4654,7 @@ static void ieee80211_mlo_multicast_tx(s
+@@ -4627,7 +4627,7 @@ static void ieee80211_mlo_multicast_tx(s
  }
  
  #ifdef CPTCFG_MAC80211_NSS_SUPPORT
@@ -38,12 +44,3 @@
  			      struct net_device *dev)
  {
  	struct ieee80211_sub_if_data *sdata = IEEE80211_DEV_TO_SUB_IF(dev);
-@@ -4989,7 +4989,7 @@ out:
- 	rcu_read_unlock();
- }
- 
--void ieee80211_8023_xmit_ap(struct ieee80211_sub_if_data *sdata,
-+static void ieee80211_8023_xmit_ap(struct ieee80211_sub_if_data *sdata,
- 			    struct net_device *dev, struct sta_info *sta,
- 			    struct ieee80211_key *key, struct sk_buff *skb,
- 			    u32 info_flags, u32 ctrl_flags, u64 *cookie)

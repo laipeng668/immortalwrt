@@ -6,16 +6,21 @@ Subject: [PATCH] ath11k: NSS MCBC Exception added for STA
 Since NSS FW is not supporting PN check for MCBC pkts, those pkts are
 excepted from NSS offload to pass through mac80211 PN check.
 
+Clear the RX control block before constructing an MCBC exception skb for
+ath11k_dp_rx_from_nss. Stale skb control data must not select the fast-RX
+path or carry unrelated receive state. The packet reaches the dedicated
+descriptor-based receive path without a prior generic undecapsulation.
+
 Signed-off-by: Karthikeyan Kathirvel <kathirve@codeaurora.org>
 Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
 ---
- drivers/net/wireless/ath/ath11k/nss.c | 91 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++------------------
- drivers/net/wireless/ath/ath11k/nss.h |  4 ++++
- 2 files changed, 77 insertions(+), 18 deletions(-)
+ drivers/net/wireless/ath/ath11k/nss.c |   92 +++++++++++++++++++++++++++++++++--------
+ drivers/net/wireless/ath/ath11k/nss.h |    4 ++
+ 2 files changed, 78 insertions(+), 18 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/nss.c
 +++ b/drivers/net/wireless/ath/ath11k/nss.c
-@@ -606,7 +606,7 @@ static int ath11k_nss_undecap_nwifi(stru
+@@ -806,7 +806,7 @@ static int ath11k_nss_undecap_nwifi(stru
  
  static void ath11k_nss_wds_type_rx(struct ath11k *ar, struct net_device *dev,
  				   u8* src_mac, u8 is_sa_valid, u8 addr4_valid,
@@ -24,7 +29,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  {
  	struct ath11k_base *ab = ar->ab;
  	struct ath11k_ast_entry *ast_entry = NULL;
-@@ -642,8 +642,6 @@ static void ath11k_nss_wds_type_rx(struc
+@@ -842,8 +842,6 @@ static void ath11k_nss_wds_type_rx(struc
  			}
  		}
  
@@ -33,7 +38,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  	}
  
  	spin_unlock_bh(&ab->base_lock);
-@@ -687,8 +685,7 @@ static void ath11k_nss_mec_handler(struc
+@@ -887,8 +885,7 @@ static void ath11k_nss_mec_handler(struc
  
  static void ath11k_nss_vdev_spl_receive_ext_wdsdata(struct ath11k_vif *arvif,
  						    struct sk_buff *skb,
@@ -43,7 +48,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  {
  	struct ath11k *ar = arvif->ar;
  	struct ath11k_base *ab = ar->ab;
-@@ -710,7 +707,7 @@ static void ath11k_nss_vdev_spl_receive_
+@@ -910,7 +907,7 @@ static void ath11k_nss_vdev_spl_receive_
  	switch (wds_type) {
  		case NSS_WIFI_VDEV_WDS_TYPE_RX:
  			ath11k_nss_wds_type_rx(ar, skb->dev, src_mac, is_sa_valid,
@@ -52,7 +57,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  			break;
  		case NSS_WIFI_VDEV_WDS_TYPE_MEC:
  			ath11k_nss_mec_handler(ar, (u8 *)(skb->data));
-@@ -775,10 +772,12 @@ ath11k_nss_vdev_special_data_receive(str
+@@ -977,10 +974,12 @@ ath11k_nss_vdev_special_data_receive(str
  	struct nss_wifi_vdev_wds_per_packet_metadata *wds_metadata = NULL;
  	struct ath11k_vif *arvif;
  	struct ath11k_base *ab;
@@ -66,8 +71,8 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  
  	arvif = ath11k_nss_get_arvif_from_dev(dev);
  	if (!arvif) {
-@@ -810,15 +809,50 @@ ath11k_nss_vdev_special_data_receive(str
- 		return;
+@@ -1020,15 +1019,51 @@ ath11k_nss_vdev_special_data_receive(str
+ 		}
  	}
  
 -	if (eth_decap && wifi_metadata->pkt_type ==
@@ -90,6 +95,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
 +			        "mcbc packet exception from nss: ",
 +			        skb->data, skb->len);
 +		rxcb = ATH11K_SKB_RXCB(skb);
++		memset(rxcb, 0, sizeof(*rxcb));
 +		rxcb->rx_desc = (struct hal_rx_desc *)skb->head;
 +		rxcb->is_first_msdu = rxcb->is_last_msdu = true;
 +		rxcb->is_continuation = false;
@@ -125,7 +131,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  }
  
  static void
-@@ -2132,6 +2166,9 @@ int ath11k_nss_vdev_set_cmd(struct ath11
+@@ -2377,6 +2412,9 @@ int ath11k_nss_vdev_set_cmd(struct ath11
  	case ATH11K_NSS_WIFI_VDEV_CFG_WDS_BACKHAUL_CMD:
  		cmd = NSS_WIFI_VDEV_CFG_WDS_BACKHAUL_CMD;
  		break;
@@ -133,9 +139,9 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
 +		cmd = NSS_WIFI_VDEV_CFG_MCBC_EXC_TO_HOST_CMD;
 +		break;
  	default:
+ 		kfree(vdev_msg);
  		return -EINVAL;
- 	}
-@@ -2654,12 +2691,31 @@ int ath11k_nss_vdev_create(struct ath11k
+@@ -2918,12 +2956,31 @@ int ath11k_nss_vdev_create(struct ath11k
  		goto free_vdev;
  
  	switch (arvif->vif->type) {
@@ -168,7 +174,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  		break;
  #ifdef CPTCFG_ATH11K_NSS_MESH_SUPPORT
  	case NL80211_IFTYPE_MESH_POINT:
-@@ -2990,7 +3046,6 @@ static int ath11k_nss_ext_vdev_register(
+@@ -3249,7 +3306,6 @@ static int ath11k_nss_ext_vdev_register(
  {
  	struct ath11k *ar = arvif->ar;
  	struct ath11k_base *ab = ar->ab;
@@ -176,7 +182,7 @@ Change-Id: I4a6ac67a1c2cf3ab7a219d0953907191606a5e70
  	u32 features = 0;
  
  	if (arvif->vif->type != NL80211_IFTYPE_AP_VLAN || arvif->nss.ctx)
-@@ -3004,7 +3059,7 @@ static int ath11k_nss_ext_vdev_register(
+@@ -3263,7 +3319,7 @@ static int ath11k_nss_ext_vdev_register(
  
  	if (!arvif->nss.ctx) {
  		ath11k_warn(ab, "failed to register nss vdev if_num %d nss_err:%d\n",

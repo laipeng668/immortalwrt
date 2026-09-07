@@ -6,10 +6,14 @@ Subject: [PATCH] ath11k: idr optimization
 Replace idr_find and idr_remove with idr_remove. As idr_remove
 itself will do idr_find. And use dma low level api.
 
+Refresh IDR extraction against ordinary dma_map_single/dma_unmap_single
+packet ownership. The removed RX DMA-bypass patch no longer supplies the
+surrounding context; IDR lookup and removal semantics are retained.
+
 Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
 ---
- backport-include/linux/idr.h            |  4 ++++
- drivers/net/wireless/ath/ath11k/dp_rx.c | 35 ++++++++++++-----------------------
+ backport-include/linux/idr.h            |    4 ++++
+ drivers/net/wireless/ath/ath11k/dp_rx.c |   35 ++++++++++++-----------------------
  2 files changed, 16 insertions(+), 23 deletions(-)
 
 --- a/backport-include/linux/idr.h
@@ -27,7 +31,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  }
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -3392,18 +3392,16 @@ try_again:
+@@ -3407,18 +3407,16 @@ try_again:
  		ar = ab->pdevs[mac_id].ar;
  		rx_ring = &ar->dp.rx_refill_buf_ring;
  		spin_lock_bh(&rx_ring->idr_lock);
@@ -49,7 +53,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  		dma_unmap_single(ab->dev, rxcb->paddr,
  				 msdu->len + skb_tailroom(msdu),
  				 DMA_FROM_DEVICE);
-@@ -4637,17 +4635,14 @@ ath11k_dp_process_rx_err_buf(struct ath1
+@@ -4656,17 +4654,14 @@ ath11k_dp_process_rx_err_buf(struct ath1
  	u32 hal_rx_desc_sz = ar->ab->hw_params.hal_desc_sz;
  
  	spin_lock_bh(&rx_ring->idr_lock);
@@ -69,7 +73,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  	rxcb = ATH11K_SKB_RXCB(msdu);
  	dma_unmap_single(ar->ab->dev, rxcb->paddr,
  			 msdu->len + skb_tailroom(msdu),
-@@ -5073,18 +5068,16 @@ int ath11k_dp_rx_process_wbm_err(struct
+@@ -5092,18 +5087,16 @@ int ath11k_dp_rx_process_wbm_err(struct
  		rx_ring = &ar->dp.rx_refill_buf_ring;
  
  		spin_lock_bh(&rx_ring->idr_lock);
@@ -91,7 +95,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  		dma_unmap_single(ab->dev, rxcb->paddr,
  				 msdu->len + skb_tailroom(msdu),
  				 DMA_FROM_DEVICE);
-@@ -5199,16 +5192,14 @@ int ath11k_dp_process_rxdma_err(struct a
+@@ -5218,16 +5211,14 @@ int ath11k_dp_process_rxdma_err(struct a
  					   msdu_cookies[i]);
  
  			spin_lock_bh(&rx_ring->idr_lock);
@@ -110,7 +114,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  
  			rxcb = ATH11K_SKB_RXCB(skb);
  			dma_unmap_single(ab->dev, rxcb->paddr,
-@@ -6445,16 +6436,14 @@ ath11k_dp_rx_full_mon_mpdu_pop(struct at
+@@ -6462,16 +6453,14 @@ ath11k_dp_rx_full_mon_mpdu_pop(struct at
  					   msdu_list.sw_cookie[i]);
  
  			spin_lock_bh(&rx_ring->idr_lock);

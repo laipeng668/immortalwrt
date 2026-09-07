@@ -29,19 +29,27 @@ TID.
 flush will happen soon instead of waiting to
 flush the queue.
 
+Copying an RX TID descriptor into a retry entry left the peer copy active,
+so a repeated delete or setup could reuse the same allocation. Transfer
+ownership to the retry entry and clear the peer pointer, DMA addresses,
+sizes and active state. Stop at the first failed cache-flush submission for
+every error code and remember that descriptor for retry. Free queued
+descriptors with dma_free_noncoherent, matching the 7.2 allocator and its
+original allocation size/address.
+
 Signed-off-by: Manish Dharanenthiran <quic_mdharane@quicinc.com>
 Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 ---
- drivers/net/wireless/ath/ath11k/core.h    |   3 +++
- drivers/net/wireless/ath/ath11k/debugfs.c |  12 +++++++++++
- drivers/net/wireless/ath/ath11k/dp.c      |   2 ++
- drivers/net/wireless/ath/ath11k/dp.h      |  15 ++++++++++++++
- drivers/net/wireless/ath/ath11k/dp_rx.c   | 169 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-----------------------------------
- 5 files changed, 162 insertions(+), 39 deletions(-)
+ drivers/net/wireless/ath/ath11k/core.h    |    3 +
+ drivers/net/wireless/ath/ath11k/debugfs.c |   12 +++
+ drivers/net/wireless/ath/ath11k/dp.c      |    2 +
+ drivers/net/wireless/ath/ath11k/dp.h      |   15 ++++
+ drivers/net/wireless/ath/ath11k/dp_rx.c   |  177 ++++++++++++++++++++++++++++++++---------
+ 5 files changed, 170 insertions(+), 39 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/core.h
 +++ b/drivers/net/wireless/ath/ath11k/core.h
-@@ -979,6 +979,9 @@ struct ath11k_soc_dp_stats {
+@@ -973,6 +973,9 @@ struct ath11k_soc_dp_stats {
  	u32 rxdma_error[HAL_REO_ENTR_RING_RXDMA_ECODE_MAX];
  	u32 reo_error[HAL_REO_DEST_RING_ERROR_CODE_MAX];
  	u32 hal_reo_error[DP_REO_DST_RING_MAX];
@@ -53,7 +61,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  };
 --- a/drivers/net/wireless/ath/ath11k/debugfs.c
 +++ b/drivers/net/wireless/ath/ath11k/debugfs.c
-@@ -728,6 +728,18 @@ static ssize_t ath11k_debugfs_dump_soc_d
+@@ -730,6 +730,18 @@ static ssize_t ath11k_debugfs_dump_soc_d
  			 "\nNSS Transmit Failures: %d\n",
  			 atomic_read(&soc_stats->tx_err.nss_tx_fail));
  
@@ -74,7 +82,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  	if (len > size)
 --- a/drivers/net/wireless/ath/ath11k/dp.c
 +++ b/drivers/net/wireless/ath/ath11k/dp.c
-@@ -1097,8 +1097,10 @@ int ath11k_dp_alloc(struct ath11k_base *
+@@ -1098,8 +1098,10 @@ int ath11k_dp_alloc(struct ath11k_base *
  
  	INIT_LIST_HEAD(&dp->reo_cmd_list);
  	INIT_LIST_HEAD(&dp->reo_cmd_cache_flush_list);
@@ -135,7 +143,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  static inline
  u8 *ath11k_dp_rx_h_80211_hdr(struct ath11k_base *ab, struct hal_rx_desc *desc)
  {
-@@ -673,13 +676,50 @@ static int ath11k_dp_rx_pdev_srng_alloc(
+@@ -673,13 +676,51 @@ static int ath11k_dp_rx_pdev_srng_alloc(
  	return 0;
  }
  
@@ -174,9 +182,10 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 +		list_del(&cmd_queue->list);
 +		rx_tid = &cmd_queue->data;
 +		if (rx_tid->vaddr_unaligned) {
-+			dma_unmap_single(ab->dev, rx_tid->paddr,
-+					 rx_tid->size, DMA_BIDIRECTIONAL);
-+			kfree(rx_tid->vaddr_unaligned);
++			dma_free_noncoherent(ab->dev, rx_tid->unaligned_size,
++					     rx_tid->vaddr_unaligned,
++					     rx_tid->paddr_unaligned,
++					     DMA_BIDIRECTIONAL);
 +			rx_tid->vaddr_unaligned = NULL;
 +		}
 +		kfree(cmd_queue);
@@ -186,7 +195,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  	spin_lock_bh(&dp->reo_cmd_lock);
  	list_for_each_entry_safe(cmd, tmp, &dp->reo_cmd_list, list) {
  		list_del(&cmd->list);
-@@ -725,14 +765,18 @@ static void ath11k_dp_reo_cmd_free(struc
+@@ -725,14 +766,18 @@ static void ath11k_dp_reo_cmd_free(struc
  	}
  }
  
@@ -207,28 +216,26 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  	desc_sz = ath11k_hal_reo_qdesc_size(0, HAL_DESC_REO_NON_QOS_TID);
  
  	while (tot_desc_sz > desc_sz) {
-@@ -743,11 +787,17 @@ static void ath11k_dp_reo_cache_flush(st
+@@ -742,12 +787,14 @@ static void ath11k_dp_reo_cache_flush(st
+ 		ret = ath11k_dp_tx_send_reo_cmd(ab, rx_tid,
  						HAL_REO_CMD_FLUSH_CACHE, &cmd,
  						NULL);
- 		if (ret)
+-		if (ret)
 -			ath11k_warn(ab,
 -				    "failed to send HAL_REO_CMD_FLUSH_CACHE, tid %d (%d)\n",
 -				    rx_tid->tid, ret);
++		if (ret) {
++			/* Retry from the first descriptor not submitted to hardware. */
 +			rx_tid->pending_desc_size = tot_desc_sz + desc_sz;
-+
-+		/* If this fails with ring full condition, then
-+		 * no need to retry below as it is expected to
-+		 * fail within short time
-+		 */
-+		if (ret == -ENOBUFS)
 +			goto exit;
++		}
  	}
  
 +	rx_tid->pending_desc_size = desc_sz;
  	memset(&cmd, 0, sizeof(cmd));
  	cmd.addr_lo = lower_32_bits(rx_tid->paddr);
  	cmd.addr_hi = upper_32_bits(rx_tid->paddr);
-@@ -755,24 +805,21 @@ static void ath11k_dp_reo_cache_flush(st
+@@ -755,24 +802,21 @@ static void ath11k_dp_reo_cache_flush(st
  	ret = ath11k_dp_tx_send_reo_cmd(ab, rx_tid,
  					HAL_REO_CMD_FLUSH_CACHE,
  					&cmd, ath11k_dp_reo_cmd_free);
@@ -259,7 +266,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  		goto free_desc;
  	} else if (status != HAL_REO_CMD_SUCCESS) {
  		/* Shouldn't happen! Cleanup in case of other failure? */
-@@ -781,6 +828,29 @@ static void ath11k_dp_rx_tid_del_func(st
+@@ -781,6 +825,29 @@ static void ath11k_dp_rx_tid_del_func(st
  		return;
  	}
  
@@ -289,7 +296,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  	elem = kzalloc_obj(*elem, GFP_ATOMIC);
  	if (!elem)
  		goto free_desc;
-@@ -798,13 +868,20 @@ static void ath11k_dp_rx_tid_del_func(st
+@@ -798,13 +865,20 @@ static void ath11k_dp_rx_tid_del_func(st
  		if (dp->reo_cmd_cache_flush_count > DP_REO_DESC_FREE_THRESHOLD ||
  		    time_after(jiffies, elem->ts +
  			       msecs_to_jiffies(DP_REO_DESC_FREE_TIMEOUT_MS))) {
@@ -314,7 +321,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  		}
  	}
  	spin_unlock_bh(&dp->reo_cmd_lock);
-@@ -820,36 +897,50 @@ free_desc:
+@@ -820,36 +894,61 @@ free_desc:
  void ath11k_peer_rx_tid_delete(struct ath11k *ar,
  			       struct ath11k_peer *peer, u8 tid)
  {
@@ -329,17 +336,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
  		return;
  
 -	rx_tid->active = false;
-+	elem = kzalloc(sizeof(*elem), GFP_ATOMIC);
-+	if (!elem) {
-+		ath11k_warn(ar->ab, "failed to alloc reo_update_rx_queue_elem, rx tid %d\n",
-+			    rx_tid->tid);
-+		return;
-+	}
-+	elem->reo_cmd_update_rx_queue_resend_flag = false;
-+	elem->peer_id = peer->peer_id;
-+	elem->tid = tid;
-+	memcpy(&elem->data, rx_tid, sizeof(*rx_tid));
- 
+-
 -	cmd.flag = HAL_REO_CMD_FLG_NEED_STATUS;
 -	cmd.addr_lo = lower_32_bits(rx_tid->paddr);
 -	cmd.addr_hi = upper_32_bits(rx_tid->paddr);
@@ -354,6 +351,29 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 -		dma_free_noncoherent(ar->ab->dev, rx_tid->unaligned_size,
 -				     rx_tid->vaddr_unaligned,
 -				     rx_tid->paddr_unaligned, DMA_BIDIRECTIONAL);
+-		rx_tid->vaddr_unaligned = NULL;
++	elem = kzalloc(sizeof(*elem), GFP_ATOMIC);
++	if (!elem) {
++		ath11k_warn(ar->ab, "failed to alloc reo_update_rx_queue_elem, rx tid %d\n",
++			    rx_tid->tid);
++		return;
+ 	}
++	elem->reo_cmd_update_rx_queue_resend_flag = false;
++	elem->peer_id = peer->peer_id;
++	elem->tid = tid;
++	memcpy(&elem->data, rx_tid, sizeof(*rx_tid));
+ 
++	/* The retry entry now owns the descriptor, even if enqueue fails.
++	 * A second delete or setup must not reuse/free the peer's old copy.
++	 */
++	rx_tid->active = false;
++	rx_tid->vaddr_unaligned = NULL;
+ 	rx_tid->paddr = 0;
+ 	rx_tid->paddr_unaligned = 0;
+ 	rx_tid->size = 0;
+ 	rx_tid->unaligned_size = 0;
++	rx_tid->pending_desc_size = 0;
++
 +	spin_lock_bh(&dp->reo_cmd_update_queue_lock);
 +	list_add_tail(&elem->list, &dp->reo_cmd_update_rx_queue_list);
 +
@@ -367,7 +387,7 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 +			elem->reo_cmd_update_rx_queue_resend_flag = true;
 +			break;
 +		}
- 		rx_tid->vaddr_unaligned = NULL;
++		rx_tid->vaddr_unaligned = NULL;
 +
 +		rx_tid->paddr = 0;
 +		rx_tid->size = 0;
@@ -376,13 +396,9 @@ Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
 +
 +		list_del(&elem->list);
 +		kfree(elem);
- 	}
++	}
 +	spin_unlock_bh(&dp->reo_cmd_update_queue_lock);
- 
--	rx_tid->paddr = 0;
--	rx_tid->paddr_unaligned = 0;
--	rx_tid->size = 0;
--	rx_tid->unaligned_size = 0;
++
  }
  
  static int ath11k_dp_rx_link_desc_return(struct ath11k_base *ab,
