@@ -2,6 +2,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=nat46
+PKG_RELEASE:=2
 
 PKG_MIRROR_HASH:=5d5c14bbb700490a9357c2c8baffd52615f3b572f82eb2fcbfc530bd23f2cdc3
 PKG_SOURCE_URL:=https://github.com/ayourtch/nat46.git
@@ -13,6 +14,7 @@ PKG_MAINTAINER:=Hans Dedecker <dedeckeh@gmail.com>
 PKG_LICENSE:=GPL-2.0
 
 PKG_BUILD_PARALLEL:=1
+PKG_EXTMOD_SUBDIRS:=nat46/modules
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -39,7 +41,6 @@ define Build/Compile
 		MODFLAGS="-DMODULE -mlong-calls" \
 		CFLAGS_MODULE="-DNAT46_VERSION=\\\"$(PKG_SOURCE_VERSION)\\\"" \
 		modules
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/nat46/modules/Module.symvers $(PKG_BUILD_DIR)/Module.symvers
 endef
 
 else
