@@ -1,43 +1,59 @@
 --- a/drivers/net/wireless/ath/ath10k/pci.c
 +++ b/drivers/net/wireless/ath/ath10k/pci.c
-@@ -1976,6 +1976,7 @@ static int ath10k_pci_hif_start(struct a
+@@ -1976,6 +1976,11 @@ static int ath10k_pci_hif_start(struct a
  
  	ath10k_dbg(ar, ATH10K_DBG_BOOT, "boot hif start\n");
  
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++	dev_set_threaded(ar->napi_dev, NETDEV_NAPI_THREADED_ENABLED);
++#else
 +	dev_set_threaded(ar->napi_dev, true);
++#endif
  	ath10k_core_napi_enable(ar);
  
  	ath10k_pci_irq_enable(ar);
 --- a/drivers/net/wireless/ath/ath10k/sdio.c
 +++ b/drivers/net/wireless/ath/ath10k/sdio.c
-@@ -1864,6 +1864,7 @@ static int ath10k_sdio_hif_start(struct
+@@ -1864,6 +1864,11 @@ static int ath10k_sdio_hif_start(struct
  	struct ath10k_sdio *ar_sdio = ath10k_sdio_priv(ar);
  	int ret;
  
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++	dev_set_threaded(ar->napi_dev, NETDEV_NAPI_THREADED_ENABLED);
++#else
 +	dev_set_threaded(ar->napi_dev, true);
++#endif
  	ath10k_core_napi_enable(ar);
  
  	/* Sleep 20 ms before HIF interrupts are disabled.
 --- a/drivers/net/wireless/ath/ath10k/core.c
 +++ b/drivers/net/wireless/ath/ath10k/core.c
-@@ -3749,6 +3749,10 @@ struct ath10k *ath10k_core_create(size_t
+@@ -3749,6 +3749,14 @@ struct ath10k *ath10k_core_create(size_t
  	if (!ar->napi_dev)
  		goto err_free_tx_complete;
  
 +	snprintf(ar->napi_dev->name, sizeof(ar->napi_dev->name), "ath10k_%s",
 +		 wiphy_name(ar->hw->wiphy));
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++	dev_set_threaded(ar->napi_dev, NETDEV_NAPI_THREADED_ENABLED);
++#else
 +	dev_set_threaded(ar->napi_dev, true);
++#endif
 +
  	ret = ath10k_coredump_create(ar);
  	if (ret)
  		goto err_free_netdev;
 --- a/drivers/net/wireless/ath/ath10k/ahb.c
 +++ b/drivers/net/wireless/ath/ath10k/ahb.c
-@@ -622,6 +622,7 @@ static int ath10k_ahb_hif_start(struct a
+@@ -622,6 +622,11 @@ static int ath10k_ahb_hif_start(struct a
  	ath10k_core_napi_enable(ar);
  	ath10k_ce_enable_interrupts(ar);
  	ath10k_pci_enable_intx_irq(ar);
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++	dev_set_threaded(ar->napi_dev, NETDEV_NAPI_THREADED_ENABLED);
++#else
 +	dev_set_threaded(ar->napi_dev, true);
++#endif
  
  	ath10k_pci_rx_post(ar);
  

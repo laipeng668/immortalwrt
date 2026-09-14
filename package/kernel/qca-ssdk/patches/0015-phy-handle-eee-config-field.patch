@@ -1,0 +1,20 @@
+Subject: [PATCH] phy: handle the EEE enable state in eee_cfg
+
+Linux 6.13 moved the EEE enable flag into struct eee_config. Keep the
+legacy field for Linux 6.12 and older while updating the same state on
+newer kernels.
+
+--- a/src/hsl/phy/hsl_phy.c
++++ b/src/hsl/phy/hsl_phy.c
+@@ -1880,7 +1880,11 @@ hsl_phydev_eee_update(a_uint32_t dev_id,
+ 	rv = hsl_phy_phydev_get(dev_id, phy_addr, &phydev);
+ 	SW_RTN_ON_ERROR(rv);
+ 
++#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,13,0))
++	phydev->eee_cfg.eee_enabled = (adv == 0 ? A_FALSE : A_TRUE);
++#else
+ 	phydev->eee_enabled = (adv == 0 ? A_FALSE : A_TRUE);
++#endif
+ 
+ 	linkmode_mod_bit(ETHTOOL_LINK_MODE_100baseT_Full_BIT,
+ 		phydev->advertising_eee, adv & FAL_PHY_EEE_100BASE_T);

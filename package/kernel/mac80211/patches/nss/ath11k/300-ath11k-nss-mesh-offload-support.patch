@@ -2388,7 +2388,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
 +
 +static void ath11k_nss_mpp_timer_cb(struct timer_list *timer)
 +{
-+	struct arvif_nss *nss = from_timer(nss, timer, mpp_expiry_timer);
++	struct arvif_nss *nss = timer_container_of(nss, timer, mpp_expiry_timer);
 +	struct ath11k_vif *arvif = container_of(nss, struct ath11k_vif, nss);
 +
 +	ath11k_nss_dump_mpp_start(arvif, true);

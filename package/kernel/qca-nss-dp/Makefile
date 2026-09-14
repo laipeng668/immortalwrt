@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=qca-nss-dp
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE_URL:=https://github.com/openwrt/qca-nss-dp.git
 PKG_SOURCE_PROTO:=git
@@ -52,7 +52,7 @@ define Build/Compile
 	+$(KERNEL_MAKE) $(PKG_JOBS) \
 		-C "$(LINUX_DIR)" \
 		M="$(PKG_BUILD_DIR)" \
-		EXTRA_CFLAGS="$(EXTRA_CFLAGS)" SoC="$(CONFIG_TARGET_SUBTARGET)" \
+		CFLAGS_MODULE="$(EXTRA_CFLAGS)" SoC="$(CONFIG_TARGET_SUBTARGET)" \
 		modules
 endef
 
