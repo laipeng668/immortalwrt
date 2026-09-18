@@ -726,7 +726,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	 * to advertise both, only report advertising at 2500BaseX.
 --- a/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
 +++ b/drivers/net/ethernet/marvell/mvpp2/mvpp2_main.c
-@@ -6377,15 +6377,14 @@ static void mvpp2_phylink_validate(struc
+@@ -6396,15 +6396,14 @@ static void mvpp2_phylink_validate(struc
  		goto empty_set;
  	}
  
@@ -865,7 +865,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  static void vsc7514_phylink_mac_config(struct phylink_config *config,
 --- a/drivers/net/ethernet/pensando/ionic/ionic_ethtool.c
 +++ b/drivers/net/ethernet/pensando/ionic/ionic_ethtool.c
-@@ -228,8 +228,7 @@ static int ionic_get_link_ksettings(stru
+@@ -229,8 +229,7 @@ static int ionic_get_link_ksettings(stru
  		break;
  	}
  

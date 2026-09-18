@@ -16,7 +16,7 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 
 --- a/drivers/mtd/nand/ecc-mtk.c
 +++ b/drivers/mtd/nand/ecc-mtk.c
-@@ -279,7 +279,10 @@ struct mtk_ecc *of_mtk_ecc_get(struct de
+@@ -281,7 +281,10 @@ struct mtk_ecc *of_mtk_ecc_get(struct de
  	struct mtk_ecc *ecc = NULL;
  	struct device_node *np;
  

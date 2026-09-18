@@ -19,9 +19,9 @@ Reviewed-by: Florian Fainelli <f.fainelli@gmail.com>
 Signed-off-by: David S. Miller <davem@davemloft.net>
 ---
  drivers/net/phy/Kconfig      |  1 +
- drivers/net/phy/phy_device.c | 76 ++++++++++++++++++++++++++++++++++++
+ drivers/net/phy/phy_device.c | 80 ++++++++++++++++++++++++++++++++++++
  include/linux/phy.h          | 16 ++++++++
- 3 files changed, 93 insertions(+)
+ 3 files changed, 97 insertions(+)
 
 --- a/drivers/net/phy/Kconfig
 +++ b/drivers/net/phy/Kconfig
@@ -56,7 +56,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  
  	mutex_init(&dev->lock);
  	INIT_DELAYED_WORK(&dev->state_queue, phy_state_machine);
-@@ -2942,6 +2945,74 @@ static bool phy_drv_supports_irq(struct
+@@ -2939,6 +2942,74 @@ static bool phy_drv_supports_irq(struct
  	return phydrv->config_intr && phydrv->handle_interrupt;
  }
  
@@ -131,18 +131,22 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  /**
   * fwnode_mdio_find_device - Given a fwnode, find the mdio_device
   * @fwnode: pointer to the mdio_device's fwnode
-@@ -3120,6 +3191,11 @@ static int phy_probe(struct device *dev)
- 	/* Set the state to READY by default */
- 	phydev->state = PHY_READY;
+@@ -3120,6 +3191,15 @@ static int phy_probe(struct device *dev)
+ 	/* Register the PHY LED triggers */
+ 	phy_led_triggers_register(phydev);
  
 +	/* Get the LEDs from the device tree, and instantiate standard
 +	 * LEDs for them.
 +	 */
 +	err = of_phy_leds(phydev);
++	if (err) {
++		phy_led_triggers_unregister(phydev);
++		goto out;
++	}
 +
+ 	return 0;
+ 
  out:
- 	/* Re-assert the reset signal on error */
- 	if (err)
 --- a/include/linux/phy.h
 +++ b/include/linux/phy.h
 @@ -14,6 +14,7 @@

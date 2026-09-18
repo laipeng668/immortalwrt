@@ -62,7 +62,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  			phylink_set(pl->supported, 10baseT_Half);
  			phylink_set(pl->supported, 10baseT_Full);
  			phylink_set(pl->supported, 100baseT_Half);
-@@ -2956,6 +2958,7 @@ void phylink_mii_c22_pcs_get_state(struc
+@@ -2957,6 +2959,7 @@ void phylink_mii_c22_pcs_get_state(struc
  
  	case PHY_INTERFACE_MODE_SGMII:
  	case PHY_INTERFACE_MODE_QSGMII:
