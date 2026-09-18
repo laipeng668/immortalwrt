@@ -82,7 +82,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	void __iomem *mem_ce;
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -994,6 +994,29 @@ unlock_exit:
+@@ -1027,6 +1027,29 @@ unlock_exit:
  	spin_unlock_bh(&ab->base_lock);
  }
  

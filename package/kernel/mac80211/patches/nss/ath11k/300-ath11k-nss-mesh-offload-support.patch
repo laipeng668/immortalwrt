@@ -1028,7 +1028,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
 +#endif
 --- a/drivers/net/wireless/ath/ath11k/dp.h
 +++ b/drivers/net/wireless/ath/ath11k/dp.h
-@@ -1430,15 +1430,29 @@ struct htt_ppdu_stats_user_common {
+@@ -1432,15 +1432,29 @@ struct htt_ppdu_stats_user_common {
  	u32 host_opaque_cookie;
  } __packed;
  
@@ -1060,7 +1060,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
  #define HTT_PPDU_STATS_MAX_USERS	37
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1402,6 +1402,71 @@ static int ath11k_htt_tlv_ppdu_stats_par
+@@ -1435,6 +1435,71 @@ static int ath11k_htt_tlv_ppdu_stats_par
  	return 0;
  }
  
@@ -1132,7 +1132,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
  static void
  ath11k_update_per_peer_tx_stats(struct ath11k *ar,
  				struct htt_ppdu_stats *ppdu_stats, u8 user)
-@@ -1425,6 +1490,9 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1458,6 +1523,9 @@ ath11k_update_per_peer_tx_stats(struct a
  	if (!(usr_stats->tlv_flags & BIT(HTT_PPDU_STATS_TAG_USR_RATE)))
  		return;
  
@@ -1142,7 +1142,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
  	if (usr_stats->tlv_flags & BIT(HTT_PPDU_STATS_TAG_USR_COMPLTN_COMMON))
  		is_ampdu =
  			HTT_USR_CMPLTN_IS_AMPDU(usr_stats->cmpltn_cmn.flags);
-@@ -1558,6 +1626,8 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1591,6 +1659,8 @@ ath11k_update_per_peer_tx_stats(struct a
  			ath11k_debugfs_sta_add_tx_stats(arsta, peer_stats, rate_idx);
  	}
  
@@ -1151,7 +1151,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
  	spin_unlock_bh(&ab->base_lock);
  	rcu_read_unlock();
  }
-@@ -1673,6 +1743,70 @@ int ath11k_dp_htt_tlv_iter(struct ath11k
+@@ -1706,6 +1776,70 @@ int ath11k_dp_htt_tlv_iter(struct ath11k
  	return 0;
  }
  
@@ -1222,7 +1222,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
  static int ath11k_htt_pull_ppdu_stats(struct ath11k_base *ab,
  				      struct sk_buff *skb)
  {
-@@ -1691,6 +1825,15 @@ static int ath11k_htt_pull_ppdu_stats(st
+@@ -1724,6 +1858,15 @@ static int ath11k_htt_pull_ppdu_stats(st
  	pdev_id = FIELD_GET(HTT_T2H_PPDU_STATS_INFO_PDEV_ID, msg->info);
  	ppdu_id = msg->ppdu_id;
  
@@ -1238,7 +1238,7 @@ Signed-off-by: Vasanthakumar Thiagarajan <vthiagar@codeaurora.org>
  	rcu_read_lock();
  	ar = ath11k_mac_get_ar_by_pdev_id(ab, pdev_id);
  	if (!ar) {
-@@ -1761,6 +1904,12 @@ static int ath11k_htt_pull_ppdu_stats(st
+@@ -1794,6 +1937,12 @@ static int ath11k_htt_pull_ppdu_stats(st
  		}
  	}
  

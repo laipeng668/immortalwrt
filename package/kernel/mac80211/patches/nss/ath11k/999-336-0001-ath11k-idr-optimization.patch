@@ -31,7 +31,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  }
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -3407,18 +3407,16 @@ try_again:
+@@ -3440,18 +3440,16 @@ try_again:
  		ar = ab->pdevs[mac_id].ar;
  		rx_ring = &ar->dp.rx_refill_buf_ring;
  		spin_lock_bh(&rx_ring->idr_lock);
@@ -53,7 +53,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  		dma_unmap_single(ab->dev, rxcb->paddr,
  				 msdu->len + skb_tailroom(msdu),
  				 DMA_FROM_DEVICE);
-@@ -4656,17 +4654,14 @@ ath11k_dp_process_rx_err_buf(struct ath1
+@@ -4689,17 +4687,14 @@ ath11k_dp_process_rx_err_buf(struct ath1
  	u32 hal_rx_desc_sz = ar->ab->hw_params.hal_desc_sz;
  
  	spin_lock_bh(&rx_ring->idr_lock);
@@ -73,7 +73,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  	rxcb = ATH11K_SKB_RXCB(msdu);
  	dma_unmap_single(ar->ab->dev, rxcb->paddr,
  			 msdu->len + skb_tailroom(msdu),
-@@ -5092,18 +5087,16 @@ int ath11k_dp_rx_process_wbm_err(struct
+@@ -5125,18 +5120,16 @@ int ath11k_dp_rx_process_wbm_err(struct
  		rx_ring = &ar->dp.rx_refill_buf_ring;
  
  		spin_lock_bh(&rx_ring->idr_lock);
@@ -95,7 +95,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  		dma_unmap_single(ab->dev, rxcb->paddr,
  				 msdu->len + skb_tailroom(msdu),
  				 DMA_FROM_DEVICE);
-@@ -5218,16 +5211,14 @@ int ath11k_dp_process_rxdma_err(struct a
+@@ -5251,16 +5244,14 @@ int ath11k_dp_process_rxdma_err(struct a
  					   msdu_cookies[i]);
  
  			spin_lock_bh(&rx_ring->idr_lock);
@@ -114,7 +114,7 @@ Signed-off-by: Tamizh Chelvam <quic_tamizhr@quicinc.com>
  
  			rxcb = ATH11K_SKB_RXCB(skb);
  			dma_unmap_single(ab->dev, rxcb->paddr,
-@@ -6462,16 +6453,14 @@ ath11k_dp_rx_full_mon_mpdu_pop(struct at
+@@ -6495,16 +6486,14 @@ ath11k_dp_rx_full_mon_mpdu_pop(struct at
  					   msdu_list.sw_cookie[i]);
  
  			spin_lock_bh(&rx_ring->idr_lock);

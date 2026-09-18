@@ -165,7 +165,7 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
  		.support_dual_stations = true,
  		.pdev_suspend = false,
  		.cfr_support = true,
-@@ -2789,6 +2796,21 @@ static int ath11k_core_pm_notify(struct
+@@ -2791,6 +2798,21 @@ static int ath11k_core_pm_notify(struct
  	return NOTIFY_OK;
  }
  
@@ -212,7 +212,7 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
  		u32 data_pos;
 --- a/drivers/net/wireless/ath/ath11k/dp.h
 +++ b/drivers/net/wireless/ath/ath11k/dp.h
-@@ -206,8 +206,9 @@ struct ath11k_pdev_dp {
+@@ -208,8 +208,9 @@ struct ath11k_pdev_dp {
  #define DP_WBM_RELEASE_RING_SIZE	64
  #define DP_TCL_DATA_RING_SIZE		512
  #define DP_TCL_DATA_RING_SIZE_WCN6750	2048
@@ -223,7 +223,7 @@ Signed-off-by: Ramya Gnanasekar <rgnanase@codeaurora.org>
  #define DP_TCL_CMD_RING_SIZE		32
  #define DP_TCL_STATUS_RING_SIZE		32
  #define DP_REO_DST_RING_MAX		4
-@@ -220,9 +221,9 @@ struct ath11k_pdev_dp {
+@@ -222,9 +223,9 @@ struct ath11k_pdev_dp {
  #define DP_RXDMA_BUF_RING_SIZE		4096
  #define DP_RXDMA_REFILL_RING_SIZE	2048
  #define DP_RXDMA_ERR_DST_RING_SIZE	1024

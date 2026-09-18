@@ -54,7 +54,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	 * FIXME: Driver should not copy struct ieee80211_chanctx_conf,
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1113,12 +1113,13 @@ int ath11k_peer_rx_tid_setup(struct ath1
+@@ -1146,12 +1146,13 @@ int ath11k_peer_rx_tid_setup(struct ath1
  	return ret;
  }
  
@@ -70,7 +70,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  	int ret;
  
  	ret = ath11k_peer_rx_tid_setup(ar, params->sta->addr, vdev_id,
-@@ -1130,14 +1131,14 @@ int ath11k_dp_rx_ampdu_start(struct ath1
+@@ -1163,14 +1164,14 @@ int ath11k_dp_rx_ampdu_start(struct ath1
  	return ret;
  }
  

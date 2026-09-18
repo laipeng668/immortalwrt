@@ -52,7 +52,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
 
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -6128,8 +6128,10 @@ int ath11k_dp_rx_process_mon_status(stru
+@@ -6161,8 +6161,10 @@ int ath11k_dp_rx_process_mon_status(stru
  	if (!num_buffs_reaped)
  		goto exit;
  
@@ -65,7 +65,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  
  	while ((skb = __skb_dequeue(&skb_list))) {
  		if (ath11k_debugfs_is_pktlog_lite_mode_enabled(ar)) {
-@@ -6146,8 +6148,6 @@ int ath11k_dp_rx_process_mon_status(stru
+@@ -6179,8 +6181,6 @@ int ath11k_dp_rx_process_mon_status(stru
  		if (log_type != ATH11K_PKTLOG_TYPE_INVALID)
  			trace_ath11k_htt_rxdesc(ar, skb->data, log_type, rx_buf_sz);
  
@@ -74,7 +74,7 @@ Signed-off-by: Yuvasree Sivasankaran <quic_ysivasan@quicinc.com>
  		hal_status = ath11k_hal_rx_parse_mon_status(ab, ppdu_info, skb);
  
  		if (test_bit(ATH11K_FLAG_MONITOR_STARTED, &ar->monitor_flags) &&
-@@ -6174,9 +6174,9 @@ int ath11k_dp_rx_process_mon_status(stru
+@@ -6207,9 +6207,9 @@ int ath11k_dp_rx_process_mon_status(stru
  			}
  		}
  

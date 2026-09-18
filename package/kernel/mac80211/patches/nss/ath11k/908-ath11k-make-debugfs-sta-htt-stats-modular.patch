@@ -142,7 +142,7 @@ stubs for each option.
  	if (test_bit(WMI_TLV_SERVICE_CFR_CAPTURE_SUPPORT,
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1724,8 +1724,10 @@ ath11k_update_per_peer_tx_stats(struct a
+@@ -1757,8 +1757,10 @@ ath11k_update_per_peer_tx_stats(struct a
  		peer_stats->mu_pos   = mu_pos;
  		peer_stats->ru_tones = arsta->txrate.he_ru_alloc;
  
@@ -153,7 +153,7 @@ stubs for each option.
  	}
  
  	usr_stats->rate_stats_updated = true;
-@@ -2170,7 +2172,9 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
+@@ -2203,7 +2205,9 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
  		ath11k_htt_pull_ppdu_stats(ab, skb);
  		break;
  	case HTT_T2H_MSG_TYPE_EXT_STATS_CONF:

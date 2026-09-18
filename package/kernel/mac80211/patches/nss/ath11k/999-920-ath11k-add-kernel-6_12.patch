@@ -13,7 +13,7 @@ the existing kernel-version adaptations.
 
 --- a/drivers/net/wireless/ath/ath11k/core.c
 +++ b/drivers/net/wireless/ath/ath11k/core.c
-@@ -2968,13 +2968,13 @@ err_sc_free:
+@@ -2970,13 +2970,13 @@ err_sc_free:
  }
  EXPORT_SYMBOL(ath11k_core_alloc);
  
@@ -31,7 +31,7 @@ the existing kernel-version adaptations.
  }
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1832,7 +1832,7 @@ struct htt_ppdu_stats_info *ath11k_dp_ht
+@@ -1865,7 +1865,7 @@ struct htt_ppdu_stats_info *ath11k_dp_ht
  	return ppdu_info;
  }
  
@@ -40,7 +40,7 @@ the existing kernel-version adaptations.
  				  struct htt_ppdu_user_stats* usr_stats)
  {
  	peer->ppdu_stats_delayba.reserved0 = usr_stats->rate.reserved0;
-@@ -1847,7 +1847,7 @@ void ath11k_copy_to_delay_stats(struct a
+@@ -1880,7 +1880,7 @@ void ath11k_copy_to_delay_stats(struct a
  	peer->delayba_flag = true;
  }
  
@@ -49,7 +49,7 @@ the existing kernel-version adaptations.
  			struct htt_ppdu_user_stats* usr_stats)
  {
  	usr_stats->rate.reserved0 = peer->ppdu_stats_delayba.reserved0;
-@@ -6388,7 +6388,7 @@ static void ath11k_dp_rx_mon_dest_proces
+@@ -6421,7 +6421,7 @@ static void ath11k_dp_rx_mon_dest_proces
  	}
  }
  

@@ -27,7 +27,7 @@ Signed-off-by: Namjae Jeon <linkinjeon@kernel.org>
 
 --- a/fs/smb/server/transport_tcp.c
 +++ b/fs/smb/server/transport_tcp.c
-@@ -544,6 +544,12 @@ static int create_socket(struct interfac
+@@ -549,6 +549,12 @@ static int create_socket(struct interfac
  	ksmbd_socket->sk->sk_rcvtimeo = KSMBD_TCP_RECV_TIMEOUT;
  	ksmbd_socket->sk->sk_sndtimeo = KSMBD_TCP_SEND_TIMEOUT;
  

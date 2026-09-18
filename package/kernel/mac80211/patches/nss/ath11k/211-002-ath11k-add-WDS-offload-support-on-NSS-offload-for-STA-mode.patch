@@ -50,7 +50,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  };
 --- a/drivers/net/wireless/ath/ath11k/dp.h
 +++ b/drivers/net/wireless/ath/ath11k/dp.h
-@@ -1105,13 +1105,16 @@ struct htt_t2h_peer_map_event {
+@@ -1107,13 +1107,16 @@ struct htt_t2h_peer_map_event {
  #define HTT_T2H_PEER_UNMAP_INFO_PEER_ID	HTT_T2H_PEER_MAP_INFO_PEER_ID
  #define HTT_T2H_PEER_UNMAP_INFO1_MAC_ADDR_H16 \
  					HTT_T2H_PEER_MAP_INFO1_MAC_ADDR_H16
@@ -71,7 +71,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  struct htt_resp_msg {
 --- a/drivers/net/wireless/ath/ath11k/dp_rx.c
 +++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
-@@ -1848,6 +1848,8 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
+@@ -1881,6 +1881,8 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
  	u16 peer_mac_h16;
  	u16 ast_hash;
  	u16 hw_peer_id;
@@ -80,7 +80,7 @@ Signed-off-by: Sathishkumar Muruganandam <murugana@codeaurora.org>
  
  	ath11k_dbg(ab, ATH11K_DBG_DP_HTT, "dp_htt rx msg type :0x%0x\n", type);
  
-@@ -1883,15 +1885,29 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
+@@ -1916,15 +1918,29 @@ void ath11k_dp_htt_htc_t2h_msg_handler(s
  				     resp->peer_map_ev.info2);
  		hw_peer_id = FIELD_GET(HTT_T2H_PEER_MAP_INFO1_HW_PEER_ID,
  				       resp->peer_map_ev.info1);
