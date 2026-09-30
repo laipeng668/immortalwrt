@@ -1,0 +1,13 @@
+ drivers/net/wireless/ath/ath11k/wmi.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+--- a/drivers/net/wireless/ath/ath11k/wmi.c
++++ b/drivers/net/wireless/ath/ath11k/wmi.c
+@@ -4235,6 +4235,7 @@ ath11k_wmi_copy_resource_config(struct w
+ 	wmi_cfg->max_bssid_rx_filters = tg_cfg->max_bssid_rx_filters;
+ 	wmi_cfg->use_pdev_id = tg_cfg->use_pdev_id;
+ 	wmi_cfg->flag1 = tg_cfg->flag1;
++	wmi_cfg->flag1 |= WMI_RSRC_CFG_FLAG1_ACK_RSSI;
+ 	wmi_cfg->peer_map_unmap_v2_support = tg_cfg->peer_map_unmap_v2_support;
+ 	wmi_cfg->sched_params = tg_cfg->sched_params;
+ 	wmi_cfg->twt_ap_pdev_count = tg_cfg->twt_ap_pdev_count;

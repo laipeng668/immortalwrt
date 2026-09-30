@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=qca-ssdk
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE_URL:=https://github.com/openwrt/qca-ssdk.git
 PKG_SOURCE_PROTO:=git
@@ -12,6 +12,11 @@ PKG_MIRROR_HASH:=d7bf3b83b08c61801e3ee3fe6d18da19c8c774e87f94c494c01f80b52d27958
 PKG_FLAGS:=nonshared
 PKG_BUILD_PARALLEL:=1
 PKG_BUILD_FLAGS:=no-lto
+
+PKG_CONFIG_DEPENDS:= \
+	CONFIG_TARGET_qualcommax_ipq807x \
+	CONFIG_TARGET_qualcommax_ipq60xx \
+	CONFIG_TARGET_qualcommax_ipq50xx
 
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/package.mk

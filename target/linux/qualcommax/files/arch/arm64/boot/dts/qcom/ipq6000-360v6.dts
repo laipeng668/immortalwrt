@@ -4,6 +4,7 @@
 
 #include "ipq6018-512m.dtsi"
 #include "ipq6018-ess.dtsi"
+#include "ipq6018-nss.dtsi"
 #include "ipq6018-cp-cpu.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
@@ -216,4 +217,38 @@
 
 	qcom,ath11k-fw-memory-mode = <1>;
 	qcom,ath11k-calibration-variant = "Qihoo-360V6";
+};
+
+&cpu_opp_table {
+	opp-864000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1056000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1200000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1320000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1440000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1512000000 {
+		opp-supported-hw = <0xf>;
+	};
+
+	opp-1608000000 {
+		opp-supported-hw = <0x1>;
+	};
+
+	opp-1800000000 {
+		opp-supported-hw = <0x1>;
+	};
 };

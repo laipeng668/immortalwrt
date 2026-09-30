@@ -695,10 +695,8 @@ $(eval $(call KernelPackage,ipoa))
 define KernelPackage/mppe
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Microsoft PPP compression/encryption
-  DEPENDS:=kmod-ppp +kmod-crypto-arc4 +kmod-crypto-sha1 +kmod-crypto-ecb
-  KCONFIG:= \
-	CONFIG_PPP_MPPE_MPPC \
-	CONFIG_PPP_MPPE
+  DEPENDS:=kmod-ppp +kmod-crypto-sha1
+  KCONFIG:=CONFIG_PPP_MPPE
   FILES:=$(LINUX_DIR)/drivers/net/ppp/ppp_mppe.ko
   AUTOLOAD:=$(call AutoProbe,ppp_mppe)
 endef
@@ -1016,7 +1014,7 @@ SCHED_FILES_EXTRA = $(foreach mod,$(SCHED_MODULES_EXTRA),$(LINUX_DIR)/net/sched/
 define KernelPackage/sched
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Extra traffic schedulers
-  DEPENDS:=+kmod-sched-core +kmod-lib-crc32c +kmod-lib-textsearch
+  DEPENDS:=+kmod-sched-core +LINUX_6_12:kmod-lib-crc32c +kmod-lib-textsearch
   KCONFIG:= \
 	CONFIG_NET_SCH_CODEL \
 	CONFIG_NET_SCH_GRED \
@@ -1233,10 +1231,11 @@ define KernelPackage/sctp
      CONFIG_SCTP_COOKIE_HMAC_MD5=y \
      CONFIG_SCTP_DEFAULT_COOKIE_HMAC_NONE=n \
      CONFIG_SCTP_DEFAULT_COOKIE_HMAC_SHA1=n \
+     CONFIG_SCTP_DEFAULT_COOKIE_HMAC_SHA256=n@ge6.18 \
      CONFIG_SCTP_DEFAULT_COOKIE_HMAC_MD5=y
   FILES:= $(LINUX_DIR)/net/sctp/sctp.ko
   AUTOLOAD:= $(call AutoLoad,32,sctp)
-  DEPENDS:=+kmod-lib-crc32c +kmod-crypto-md5 +kmod-crypto-hmac \
+  DEPENDS:=+LINUX_6_12:kmod-lib-crc32c +kmod-crypto-md5 +kmod-crypto-hmac \
     +kmod-udptunnel4 +kmod-udptunnel6
 endef
 
