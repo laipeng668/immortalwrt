@@ -48,7 +48,7 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
  obj-y	+= raw/
 --- a/drivers/mtd/nand/raw/mtk_ecc.c
 +++ /dev/null
-@@ -1,599 +0,0 @@
+@@ -1,607 +0,0 @@
 -// SPDX-License-Identifier: GPL-2.0 OR MIT
 -/*
 - * MTK ECC controller driver.
@@ -167,8 +167,8 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 -	[ECC_DECIRQ_STA] =      0x144,
 -};
 -
--static inline void mtk_ecc_wait_idle(struct mtk_ecc *ecc,
--				     enum mtk_ecc_operation op)
+-static inline int mtk_ecc_wait_idle(struct mtk_ecc *ecc,
+-				    enum mtk_ecc_operation op)
 -{
 -	struct device *dev = ecc->dev;
 -	u32 val;
@@ -180,6 +180,8 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 -	if (ret)
 -		dev_warn(dev, "%s NOT idle\n",
 -			 op == ECC_ENCODE ? "encoder" : "decoder");
+-
+-	return ret;
 -}
 -
 -static irqreturn_t mtk_ecc_irq(int irq, void *id)
@@ -353,7 +355,11 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 -		return ret;
 -	}
 -
--	mtk_ecc_wait_idle(ecc, op);
+-	ret = mtk_ecc_wait_idle(ecc, op);
+-	if (ret) {
+-		mutex_unlock(&ecc->lock);
+-		return ret;
+-	}
 -
 -	ret = mtk_ecc_config(ecc, config);
 -	if (ret) {
@@ -453,7 +459,9 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 -	if (ret)
 -		goto timeout;
 -
--	mtk_ecc_wait_idle(ecc, ECC_ENCODE);
+-	ret = mtk_ecc_wait_idle(ecc, ECC_ENCODE);
+-	if (ret)
+-		goto timeout;
 -
 -	/* Program ECC bytes to OOB: per sector oob = FDM + ECC + SPARE */
 -	len = (config->strength * ecc->caps->parity_bits + 7) >> 3;
@@ -650,7 +658,7 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 -MODULE_LICENSE("Dual MIT/GPL");
 --- /dev/null
 +++ b/drivers/mtd/nand/ecc-mtk.c
-@@ -0,0 +1,598 @@
+@@ -0,0 +1,606 @@
 +// SPDX-License-Identifier: GPL-2.0 OR MIT
 +/*
 + * MTK ECC controller driver.
@@ -768,8 +776,8 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 +	[ECC_DECIRQ_STA] =      0x144,
 +};
 +
-+static inline void mtk_ecc_wait_idle(struct mtk_ecc *ecc,
-+				     enum mtk_ecc_operation op)
++static inline int mtk_ecc_wait_idle(struct mtk_ecc *ecc,
++				    enum mtk_ecc_operation op)
 +{
 +	struct device *dev = ecc->dev;
 +	u32 val;
@@ -781,6 +789,8 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 +	if (ret)
 +		dev_warn(dev, "%s NOT idle\n",
 +			 op == ECC_ENCODE ? "encoder" : "decoder");
++
++	return ret;
 +}
 +
 +static irqreturn_t mtk_ecc_irq(int irq, void *id)
@@ -954,7 +964,11 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 +		return ret;
 +	}
 +
-+	mtk_ecc_wait_idle(ecc, op);
++	ret = mtk_ecc_wait_idle(ecc, op);
++	if (ret) {
++		mutex_unlock(&ecc->lock);
++		return ret;
++	}
 +
 +	ret = mtk_ecc_config(ecc, config);
 +	if (ret) {
@@ -1054,7 +1068,9 @@ Signed-off-by: Chuanhong Guo <gch981213@gmail.com>
 +	if (ret)
 +		goto timeout;
 +
-+	mtk_ecc_wait_idle(ecc, ECC_ENCODE);
++	ret = mtk_ecc_wait_idle(ecc, ECC_ENCODE);
++	if (ret)
++		goto timeout;
 +
 +	/* Program ECC bytes to OOB: per sector oob = FDM + ECC + SPARE */
 +	len = (config->strength * ecc->caps->parity_bits + 7) >> 3;

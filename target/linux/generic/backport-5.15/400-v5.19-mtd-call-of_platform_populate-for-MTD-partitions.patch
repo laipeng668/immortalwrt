@@ -37,7 +37,7 @@ Link: https://lore.kernel.org/linux-mtd/20220510131259.555-1-zajec5@gmail.com
  
  #include "mtdcore.h"
  
-@@ -577,10 +578,16 @@ static int mtd_part_of_parse(struct mtd_
+@@ -578,10 +579,16 @@ static int mtd_part_of_parse(struct mtd_
  	struct mtd_part_parser *parser;
  	struct device_node *np;
  	struct property *prop;
@@ -54,7 +54,7 @@ Link: https://lore.kernel.org/linux-mtd/20220510131259.555-1-zajec5@gmail.com
  	np = mtd_get_of_node(master);
  	if (mtd_is_partition(master))
  		of_node_get(np);
-@@ -593,6 +600,7 @@ static int mtd_part_of_parse(struct mtd_
+@@ -594,6 +601,7 @@ static int mtd_part_of_parse(struct mtd_
  			continue;
  		ret = mtd_part_do_parse(parser, master, pparts, NULL);
  		if (ret > 0) {
@@ -62,7 +62,7 @@ Link: https://lore.kernel.org/linux-mtd/20220510131259.555-1-zajec5@gmail.com
  			of_node_put(np);
  			return ret;
  		}
-@@ -600,6 +608,7 @@ static int mtd_part_of_parse(struct mtd_
+@@ -601,6 +609,7 @@ static int mtd_part_of_parse(struct mtd_
  		if (ret < 0 && !err)
  			err = ret;
  	}
