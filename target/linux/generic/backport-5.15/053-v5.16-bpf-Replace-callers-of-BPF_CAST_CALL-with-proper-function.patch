@@ -89,7 +89,7 @@ Link: https://lore.kernel.org/bpf/20210928230946.4062144-3-keescook@chromium.org
  			break;
 --- a/kernel/bpf/hashtab.c
 +++ b/kernel/bpf/hashtab.c
-@@ -2065,7 +2065,7 @@ static const struct bpf_iter_seq_info it
+@@ -2083,7 +2083,7 @@ static const struct bpf_iter_seq_info it
  	.seq_priv_size		= sizeof(struct bpf_iter_seq_hash_map_info),
  };
  
@@ -98,7 +98,7 @@ Link: https://lore.kernel.org/bpf/20210928230946.4062144-3-keescook@chromium.org
  				  void *callback_ctx, u64 flags)
  {
  	struct bpf_htab *htab = container_of(map, struct bpf_htab, map);
-@@ -2105,9 +2105,8 @@ static int bpf_for_each_hash_elem(struct
+@@ -2123,9 +2123,8 @@ static int bpf_for_each_hash_elem(struct
  				val = elem->key + roundup_key_size;
  			}
  			num_elems++;
