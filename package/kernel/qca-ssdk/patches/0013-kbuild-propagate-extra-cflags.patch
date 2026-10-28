@@ -1,0 +1,17 @@
+Subject: [PATCH] kbuild: propagate caller flags through ccflags-y
+
+Linux 6.18 no longer adds EXTRA_CFLAGS to the per-directory flags.
+Keep the package's existing flags, including its include paths and
+warning settings, when the driver is built through Kbuild.
+
+--- a/Makefile.modules
++++ b/Makefile.modules
+@@ -1,7 +1,7 @@
+ ####################################################################
+ # 			Add All Local Flags
+ ####################################################################
+-ccflags-y += $(LNX_LOCAL_CFLAGS)
++ccflags-y += $(LNX_LOCAL_CFLAGS) $(EXTRA_CFLAGS)
+ 
+ ####################################################################
+ # 			Build Object List

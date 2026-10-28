@@ -1,0 +1,86 @@
+ drivers/net/wireless/ath/ath11k/ahb.c  | 11 +++++++++++
+ drivers/net/wireless/ath/ath11k/pcic.c | 11 +++++++++++
+ 2 files changed, 22 insertions(+)
+
+--- a/drivers/net/wireless/ath/ath11k/ahb.c
++++ b/drivers/net/wireless/ath/ath11k/ahb.c
+@@ -387,6 +387,11 @@ static void ath11k_ahb_ext_irq_enable(st
+ 		struct ath11k_ext_irq_grp *irq_grp = &ab->ext_irq_grp[i];
+ 
+ 		if (!irq_grp->napi_enabled) {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++			dev_set_threaded(irq_grp->napi_ndev, NETDEV_NAPI_THREADED_ENABLED);
++#else
++			dev_set_threaded(irq_grp->napi_ndev, true);
++#endif
+ 			napi_enable(&irq_grp->napi);
+ 			irq_grp->napi_enabled = true;
+ 			ath11k_ahb_ext_grp_enable(irq_grp);
+@@ -543,6 +548,7 @@ static int ath11k_ahb_config_ext_irq(str
+ 	int irq;
+ 	int ret;
+ 	bool nss_offload;
++	static int devidx = 0;
+ 
+ 	/* TCL Completion, REO Dest, ERR, Exception and h2rxdma rings are offloaded
+ 	 * to nss when its enabled, hence don't enable these interrupts
+@@ -560,6 +566,9 @@ static int ath11k_ahb_config_ext_irq(str
+ 		if (!irq_grp->napi_ndev)
+ 			return -ENOMEM;
+ 
++		snprintf(irq_grp->napi_ndev->name, sizeof(irq_grp->napi_ndev->name), "%s%d:%d",
++			 "ath11k_ahb", devidx, i);
++
+ 		netif_napi_add(irq_grp->napi_ndev, &irq_grp->napi,
+ 			       ath11k_ahb_ext_grp_napi_poll);
+ 
+@@ -625,6 +634,8 @@ static int ath11k_ahb_config_ext_irq(str
+ 		}
+ 	}
+ 
++	devidx++;
++
+ 	return 0;
+ }
+ 
+--- a/drivers/net/wireless/ath/ath11k/pcic.c
++++ b/drivers/net/wireless/ath/ath11k/pcic.c
+@@ -497,6 +497,11 @@ void ath11k_pcic_ext_irq_enable(struct a
+ 		struct ath11k_ext_irq_grp *irq_grp = &ab->ext_irq_grp[i];
+ 
+ 		if (!irq_grp->napi_enabled) {
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 17, 0)
++			dev_set_threaded(irq_grp->napi_ndev, NETDEV_NAPI_THREADED_ENABLED);
++#else
++			dev_set_threaded(irq_grp->napi_ndev, true);
++#endif
+ 			napi_enable(&irq_grp->napi);
+ 			irq_grp->napi_enabled = true;
+ 			ath11k_pcic_ext_grp_enable(irq_grp);
+@@ -584,6 +589,7 @@ static int ath11k_pcic_ext_irq_config(st
+ 	u32 user_base_data = 0, base_vector = 0;
+ 	struct ath11k_ext_irq_grp *irq_grp;
+ 	unsigned long irq_flags;
++	static int devidx = 0;
+ 
+ 	ret = ath11k_pcic_get_user_msi_assignment(ab, "DP", &num_vectors,
+ 						  &user_base_data,
+@@ -607,6 +613,9 @@ static int ath11k_pcic_ext_irq_config(st
+ 			goto fail_allocate;
+ 		}
+ 
++		snprintf(irq_grp->napi_ndev->name, sizeof(irq_grp->napi_ndev->name), "%s%d:%d",
++			 "ath11k_pci", devidx, i);
++
+ 		netif_napi_add(irq_grp->napi_ndev, &irq_grp->napi,
+ 			       ath11k_pcic_ext_grp_napi_poll);
+ 
+@@ -661,6 +670,8 @@ static int ath11k_pcic_ext_irq_config(st
+ 		ath11k_pcic_ext_grp_disable(irq_grp);
+ 	}
+ 
++	devidx++;
++
+ 	return 0;
+ fail_irq:
+ 	/* i ->napi_ndev was properly allocated. Free it also */

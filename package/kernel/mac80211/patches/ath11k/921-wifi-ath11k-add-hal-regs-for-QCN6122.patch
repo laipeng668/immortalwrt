@@ -8,19 +8,24 @@ specific ath11k_hw_regs and register them in hw params.
 
 Signed-off-by: George Moussalem <george.moussalem@outlook.com>
 ---
+ drivers/net/wireless/ath/ath11k/core.c |  1 +
+ drivers/net/wireless/ath/ath11k/hw.c   | 75 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ drivers/net/wireless/ath/ath11k/hw.h   |  1 +
+ 3 files changed, 77 insertions(+)
+
 --- a/drivers/net/wireless/ath/ath11k/core.c
 +++ b/drivers/net/wireless/ath/ath11k/core.c
-@@ -920,6 +920,7 @@ static struct ath11k_hw_params ath11k_hw
+@@ -939,6 +939,7 @@ static struct ath11k_hw_params ath11k_hw
  		.bdf_addr = 0x4D200000,
  		.hw_ops = &ipq5018_ops,
  		.hal_desc_sz = sizeof(struct hal_rx_desc_qcn9074),
 +		.regs = &qcn6122_regs,
  		.qmi_service_ins_id = ATH11K_QMI_WLFW_SERVICE_INS_ID_V01_QCN6122,
  		.interface_modes = BIT(NL80211_IFTYPE_STATION) |
- 					BIT(NL80211_IFTYPE_AP) |
+ 				BIT(NL80211_IFTYPE_AP) |
 --- a/drivers/net/wireless/ath/ath11k/hw.c
 +++ b/drivers/net/wireless/ath/ath11k/hw.c
-@@ -2822,6 +2822,81 @@ const struct ath11k_hw_regs ipq5018_regs
+@@ -2830,6 +2830,81 @@ const struct ath11k_hw_regs ipq5018_regs
  	.hal_wbm1_release_ring_base_lsb = 0x0000097c,
  };
  
@@ -99,12 +104,12 @@ Signed-off-by: George Moussalem <george.moussalem@outlook.com>
 +	.hal_wbm1_release_ring_base_lsb = 0x0000097c,
 +};
 +
- const struct ath11k_hw_hal_params ath11k_hw_hal_params_ipq8074 = {
+ const struct ath11k_hw_hal_params ath11k_hw_hal_params_ipq5018 = {
  	.rx_buf_rbm = HAL_RX_BUF_RBM_SW3_BM,
- 	.tcl2wbm_rbm_map = ath11k_hw_tcl2wbm_rbm_map_ipq8074,
+ 	.tcl2wbm_rbm_map = ath11k_hw_tcl2wbm_rbm_map_ipq5018,
 --- a/drivers/net/wireless/ath/ath11k/hw.h
 +++ b/drivers/net/wireless/ath/ath11k/hw.h
-@@ -426,6 +426,7 @@ extern const struct ath11k_hw_regs qcn90
+@@ -430,6 +430,7 @@ extern const struct ath11k_hw_regs qcn90
  extern const struct ath11k_hw_regs wcn6855_regs;
  extern const struct ath11k_hw_regs wcn6750_regs;
  extern const struct ath11k_hw_regs ipq5018_regs;

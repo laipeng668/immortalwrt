@@ -1,0 +1,341 @@
+From efecc6e8355d02aeac7bf1a43397551440a8d0d8 Mon Sep 17 00:00:00 2001
+From: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
+Date: Thu, 30 Mar 2023 22:12:56 +0530
+Subject: [PATCH] ath11k: Check skb_headroom before using skb_push
+
+Below kernel panic may occur if there is no
+skb_headroom available for performing skb_push.
+
+<4>[67506.565072] CPU: 1 PID: 1741 Comm: ap-wireless-opt Not tainted 5.4.89+ #0
+<4>[67506.578860] Hardware name: Generic DT based system
+<4>[67506.585728] PC is at fortify_panic+0x10/0x18
+<4>[67506.590406] LR is at fortify_panic+0x10/0x18
+
+(fortify_panic) from [<7f2cd3cc>] (ath11k_dp_rx_crypto_icv_len+0x1e0/0x161c [ath11k])
+(ath11k_dp_rx_crypto_icv_len [ath11k]) from [<7f2cdbac>] (ath11k_dp_rx_crypto_icv_len+0x9c0/0x161c [ath11k])
+(ath11k_dp_rx_crypto_icv_len [ath11k]) from [<7f2ce0e8>] (ath11k_dp_rx_crypto_icv_len+0xefc/0x161c [ath11k])
+(ath11k_dp_rx_crypto_icv_len [ath11k]) from [<7f2cedb0>] (ath11k_dp_process_rx+0x4ec/0x544 [ath11k])
+(ath11k_dp_process_rx [ath11k]) from [<7f2c417c>] (ath11k_dp_service_srng+0xdc/0x2a0 [ath11k])
+(ath11k_dp_service_srng [ath11k]) from [<7f0d78c8>] (ath11k_pci_ext_grp_napi_poll+0x20/0x50 [ath11k_pci])
+(ath11k_pci_ext_grp_napi_poll [ath11k_pci]) from [<806a6a74>] (__napi_poll+0x28/0xb8)
+(__napi_poll) from [<806a6c9c>] (net_rx_action+0xec/0x280)
+(net_rx_action) from [<8010226c>] (__do_softirq+0xc4/0x248)
+(__do_softirq) from [<8011f230>] (irq_exit+0x6c/0xcc)
+(irq_exit) from [<80162a08>] (__handle_domain_irq+0x8c/0xb0)
+(__handle_domain_irq) from [<803f0188>] (gic_handle_irq+0x54/0x8c)
+(gic_handle_irq) from [<80101a8c>] (__irq_svc+0x6c/0xa8)
+
+Fix this by checking skb_headroom and expand the
+headroom if required size is not available.
+
+Validate NSS RAW/native/Ethernet header lengths and the crypto/FCS tail that
+undecapsulation will remove before deriving or using buffer pointers.
+Preserve the MCBC marker supplied by NSS so group-key selection and mac80211
+PN checks still run. Buffer expansion must finish before cached
+descriptor/header pointers are used; reject insufficient headroom instead of
+retaining pointers across reallocation.
+
+Signed-off-by: Tamizh Chelvam Raja <quic_tamizhr@quicinc.com>
+---
+ drivers/net/wireless/ath/ath11k/dp_rx.c |  160 +++++++++++++++++++++++++++++++++++------
+ 1 file changed, 139 insertions(+), 21 deletions(-)
+
+--- a/drivers/net/wireless/ath/ath11k/dp_rx.c
++++ b/drivers/net/wireless/ath/ath11k/dp_rx.c
+@@ -2795,7 +2795,75 @@ static void ath11k_dp_rx_h_undecap_snap(
+ 	memcpy(skb_push(msdu, hdr_len), hdr, hdr_len);
+ }
+ 
+-static void ath11k_dp_rx_h_undecap(struct ath11k *ar, struct sk_buff *msdu,
++static int ath11k_dp_rx_reserve_headroom(struct sk_buff *msdu,
++					 unsigned int headroom)
++{
++	struct ath11k_skb_rxcb *rxcb = ATH11K_SKB_RXCB(msdu);
++	unsigned long desc = (unsigned long)rxcb->rx_desc;
++	bool relocate_desc;
++	long desc_offset = 0;
++	int ret;
++
++	relocate_desc = desc >= (unsigned long)msdu->head &&
++			desc < (unsigned long)skb_end_pointer(msdu);
++	if (relocate_desc)
++		desc_offset = (u8 *)rxcb->rx_desc - msdu->data;
++
++	ret = skb_cow_head(msdu, headroom);
++	if (ret)
++		return ret;
++
++	/* The descriptor can live in the headroom moved by skb_cow_head(). */
++	if (relocate_desc)
++		rxcb->rx_desc = (void *)(msdu->data + desc_offset);
++
++	return 0;
++}
++
++static int ath11k_dp_rx_nss_validate(struct ath11k *ar, struct sk_buff *msdu,
++				     u8 decap, enum hal_encrypt_type enctype,
++				     struct ieee80211_rx_status *status,
++				     bool decrypted)
++{
++	struct ieee80211_hdr *hdr;
++	unsigned int hdr_len, crypto_len = 0, tail_len = 0;
++
++	switch (decap) {
++	case DP_RX_DECAP_TYPE_RAW:
++	case DP_RX_DECAP_TYPE_NATIVE_WIFI:
++		if (skb_headlen(msdu) < sizeof(struct ieee80211_hdr_3addr))
++			return -EINVAL;
++		hdr = (void *)msdu->data;
++		if (!ieee80211_is_data(hdr->frame_control))
++			return -EINVAL;
++		hdr_len = ieee80211_hdrlen(hdr->frame_control);
++		if (decap == DP_RX_DECAP_TYPE_RAW) {
++			tail_len = FCS_LEN;
++			if (decrypted) {
++				crypto_len = ath11k_dp_rx_crypto_param_len(ar, enctype);
++				if (status->flag & (RX_FLAG_IV_STRIPPED | RX_FLAG_MIC_STRIPPED))
++					tail_len += ath11k_dp_rx_crypto_mic_len(ar, enctype);
++				if (status->flag & (RX_FLAG_IV_STRIPPED | RX_FLAG_ICV_STRIPPED))
++					tail_len += ath11k_dp_rx_crypto_icv_len(ar, enctype);
++				if ((status->flag & RX_FLAG_MMIC_STRIPPED) &&
++				    !ieee80211_has_morefrags(hdr->frame_control) &&
++				    enctype == HAL_ENCRYPT_TYPE_TKIP_MIC)
++					tail_len += IEEE80211_CCMP_MIC_LEN;
++			}
++		}
++		if (skb_headlen(msdu) < hdr_len + crypto_len ||
++		    msdu->len < hdr_len + crypto_len + tail_len)
++			return -EINVAL;
++		return 0;
++	case DP_RX_DECAP_TYPE_ETHERNET2_DIX:
++	case DP_RX_DECAP_TYPE_8023:
++		return skb_headlen(msdu) < ETH_HLEN ? -EINVAL : 0;
++	default:
++		return -EINVAL;
++	}
++}
++
++static int ath11k_dp_rx_h_undecap(struct ath11k *ar, struct sk_buff *msdu,
+ 				   struct hal_rx_desc *rx_desc,
+ 				   enum hal_encrypt_type enctype,
+ 				   struct ieee80211_rx_status *status,
+@@ -2804,9 +2872,32 @@ static void ath11k_dp_rx_h_undecap(struc
+ 	u8 *first_hdr;
+ 	u8 decap;
+ 	struct ethhdr *ehdr;
++	struct ath11k_skb_rxcb *rxcb = ATH11K_SKB_RXCB(msdu);
++	unsigned int headroom;
++	int ret;
+ 
+-	first_hdr = ath11k_dp_rx_h_80211_hdr(ar->ab, rx_desc);
++	rxcb->rx_desc = rx_desc;
+ 	decap = ath11k_dp_rx_h_msdu_start_decap_type(ar->ab, rx_desc);
++	if (ar->ab->nss.enabled) {
++		ret = ath11k_dp_rx_nss_validate(ar, msdu, decap, enctype, status,
++					      decrypted);
++		if (ret)
++			return ret;
++	}
++	if (decap != DP_RX_DECAP_TYPE_RAW) {
++		headroom = DP_MAX_NWIFI_HDR_LEN +
++			   sizeof(struct ath11k_dp_rfc1042_hdr);
++		if (!(status->flag & RX_FLAG_IV_STRIPPED))
++			headroom += ath11k_dp_rx_crypto_param_len(ar, enctype);
++
++		ret = ath11k_dp_rx_reserve_headroom(msdu, headroom);
++		if (ret)
++			return ret;
++		rx_desc = rxcb->rx_desc;
++	}
++
++	/* No buffer expansion is allowed after deriving these pointers. */
++	first_hdr = ath11k_dp_rx_h_80211_hdr(ar->ab, rx_desc);
+ 
+ 	switch (decap) {
+ 	case DP_RX_DECAP_TYPE_NATIVE_WIFI:
+@@ -2840,6 +2931,8 @@ static void ath11k_dp_rx_h_undecap(struc
+ 					    enctype, status);
+ 		break;
+ 	}
++
++	return 0;
+ }
+ 
+ static struct ath11k_peer *
+@@ -2913,13 +3006,13 @@ static bool ath11k_dp_rx_check_fast_rx(s
+ 	return true;
+ }
+ 
+-static void ath11k_dp_rx_h_mpdu(struct ath11k *ar,
++static int ath11k_dp_rx_h_mpdu(struct ath11k *ar,
+ 				struct sk_buff *msdu,
+ 				struct hal_rx_desc *rx_desc,
+ 				struct ieee80211_rx_status *rx_status,
+ 				bool *fast_rx)
+ {
+-	bool  fill_crypto_hdr;
++	bool fill_crypto_hdr = false;
+ 	enum hal_encrypt_type enctype;
+ 	bool is_decrypted = false;
+ 	struct ath11k_skb_rxcb *rxcb;
+@@ -2927,12 +3020,16 @@ static void ath11k_dp_rx_h_mpdu(struct a
+ 	struct ath11k_peer *peer;
+ 	struct rx_attention *rx_attention;
+ 	u32 err_bitmap;
++	int ret;
+ 
+ 	struct wireless_dev *wdev = NULL;
+ 
+ 	/* PN for multicast packets will be checked in mac80211 */
+ 	rxcb = ATH11K_SKB_RXCB(msdu);
+-	if (!ar->ab->nss.enabled)
++	rxcb->rx_desc = rx_desc;
++	if (ar->ab->nss.enabled)
++		fill_crypto_hdr = rxcb->is_mcbc;
++	else
+ 		fill_crypto_hdr = ath11k_dp_rx_h_attn_is_mcbc(ar->ab, rx_desc);
+ 	rxcb->is_mcbc = fill_crypto_hdr;
+ 
+@@ -2957,7 +3054,7 @@ static void ath11k_dp_rx_h_mpdu(struct a
+ 				msdu->dev = wdev->netdev;
+ 				msdu->protocol = eth_type_trans(msdu, msdu->dev);
+ 				napi_gro_receive(rxcb->napi, msdu);
+-				return;
++				return 0;
+ 			}
+ 		}
+ 
+@@ -3001,17 +3098,22 @@ static void ath11k_dp_rx_h_mpdu(struct a
+ 	}
+ 
+ 	ath11k_dp_rx_h_csum_offload(ar, msdu);
+-	ath11k_dp_rx_h_undecap(ar, msdu, rx_desc,
+-			       enctype, rx_status, is_decrypted);
++	ret = ath11k_dp_rx_h_undecap(ar, msdu, rx_desc,
++				    enctype, rx_status, is_decrypted);
++	if (ret)
++		return ret;
++	rx_desc = rxcb->rx_desc;
+ 
+ 	if (!is_decrypted || fill_crypto_hdr)
+-		return;
++		return 0;
+ 
+ 	if (ath11k_dp_rx_h_msdu_start_decap_type(ar->ab, rx_desc) !=
+ 	    DP_RX_DECAP_TYPE_ETHERNET2_DIX) {
+ 		hdr = (void *)msdu->data;
+ 		hdr->frame_control &= ~__cpu_to_le16(IEEE80211_FCTL_PROTECTED);
+ 	}
++
++	return 0;
+ }
+ 
+ static void ath11k_dp_rx_h_rate(struct ath11k *ar, struct hal_rx_desc *rx_desc,
+@@ -3152,6 +3254,10 @@ static void ath11k_dp_rx_deliver_msdu(st
+ 	if (status->encoding == RX_ENC_HE &&
+ 	    !(status->flag & RX_FLAG_RADIOTAP_HE) &&
+ 	    !(status->flag & RX_FLAG_SKIP_MONITOR)) {
++		if (ath11k_dp_rx_reserve_headroom(msdu, sizeof(known))) {
++			dev_kfree_skb_any(msdu);
++			return;
++		}
+ 		he = skb_push(msdu, sizeof(known));
+ 		memcpy(he, &known, sizeof(known));
+ 		status->flag |= RX_FLAG_RADIOTAP_HE;
+@@ -3324,12 +3430,15 @@ static int ath11k_dp_rx_process_msdu(str
+ 		goto free_out;
+ 	}
+ 
+-	ath11k_dp_rx_h_mpdu(ar, msdu, rx_desc, rx_status, fast_rx);
++	ret = ath11k_dp_rx_h_mpdu(ar, msdu, rx_desc, rx_status, fast_rx);
++	if (ret)
++		goto free_out;
+ 	if (*fast_rx) {
+ 		ab->soc_stats.invalid_rbm++;
+ 		return 0;
+ 	}
+ 
++	rx_desc = rxcb->rx_desc;
+ 	ath11k_dp_rx_h_ppdu(ar, rx_desc, rx_status);
+ 
+ 	rx_status->flag |= RX_FLAG_SKIP_MONITOR | RX_FLAG_DUP_VALIDATED;
+@@ -3407,7 +3516,10 @@ void ath11k_dp_rx_from_nss(struct ath11k
+ 	rxcb->napi = napi;
+ 
+ 	ath11k_dp_rx_h_ppdu(ar, rxcb->rx_desc, &rx_status);
+-	ath11k_dp_rx_h_mpdu(ar, msdu, rxcb->rx_desc, &rx_status, &fast_rx);
++	if (ath11k_dp_rx_h_mpdu(ar, msdu, rxcb->rx_desc, &rx_status, &fast_rx)) {
++		dev_kfree_skb_any(msdu);
++		return;
++	}
+ 
+ 	rx_status.flag |= RX_FLAG_SKIP_MONITOR | RX_FLAG_DUP_VALIDATED;
+ 
+@@ -4224,7 +4336,7 @@ static int ath11k_dp_rx_h_verify_tkip_mi
+ 					  struct sk_buff *msdu)
+ {
+ 	struct hal_rx_desc *rx_desc = (struct hal_rx_desc *)msdu->data;
+-	struct ieee80211_rx_status *rxs = IEEE80211_SKB_RXCB(msdu);
++	struct ieee80211_rx_status rxs = {};
+ 	struct ieee80211_key_conf *key_conf;
+ 	struct ieee80211_hdr *hdr;
+ 	u8 mic[IEEE80211_CCMP_MIC_LEN];
+@@ -4265,7 +4377,7 @@ mic_fail:
+ 	(ATH11K_SKB_RXCB(msdu))->is_first_msdu = true;
+ 	(ATH11K_SKB_RXCB(msdu))->is_last_msdu = true;
+ 
+-	rxs->flag |= RX_FLAG_MMIC_ERROR | RX_FLAG_MMIC_STRIPPED |
++	rxs.flag |= RX_FLAG_MMIC_ERROR | RX_FLAG_MMIC_STRIPPED |
+ 		    RX_FLAG_IV_STRIPPED | RX_FLAG_DECRYPTED;
+ 	skb_pull(msdu, hal_rx_desc_sz);
+ 
+@@ -4275,9 +4387,13 @@ mic_fail:
+ 		return -EINVAL;
+ 	}
+ 
+-	ath11k_dp_rx_h_ppdu(ar, rx_desc, rxs);
+-	ath11k_dp_rx_h_undecap(ar, msdu, rx_desc,
+-			       HAL_ENCRYPT_TYPE_TKIP_MIC, rxs, true);
++	ath11k_dp_rx_h_ppdu(ar, rx_desc, &rxs);
++	if (ath11k_dp_rx_h_undecap(ar, msdu, rx_desc,
++				     HAL_ENCRYPT_TYPE_TKIP_MIC, &rxs, true)) {
++		dev_kfree_skb_any(msdu);
++		return -EINVAL;
++	}
++	*IEEE80211_SKB_RXCB(msdu) = rxs;
+ 	ieee80211_rx(ar->hw, msdu);
+ 	return -EINVAL;
+ }
+@@ -4919,6 +5035,7 @@ static int ath11k_dp_rx_h_null_q_desc(st
+ 				      struct sk_buff_head *msdu_list)
+ {
+ 	bool fast_rx;
++	int ret;
+ 	u16 msdu_len;
+ 	struct hal_rx_desc *desc = (struct hal_rx_desc *)msdu->data;
+ 	struct rx_attention *rx_attention;
+@@ -4973,7 +5090,10 @@ static int ath11k_dp_rx_h_null_q_desc(st
+ 	ath11k_dp_rx_h_ppdu(ar, desc, status);
+ 
+ 	fast_rx = false;
+-	ath11k_dp_rx_h_mpdu(ar, msdu, desc, status, &fast_rx);
++	ret = ath11k_dp_rx_h_mpdu(ar, msdu, desc, status, &fast_rx);
++	if (ret)
++		return ret;
++	desc = rxcb->rx_desc;
+ 
+ 	rxcb->tid = ath11k_dp_rx_h_mpdu_start_tid(ar->ab, desc);
+ 
+@@ -5050,10 +5170,8 @@ static bool ath11k_dp_rx_h_tkip_mic_err(
+ 	status->flag |= (RX_FLAG_MMIC_STRIPPED | RX_FLAG_MMIC_ERROR |
+ 			 RX_FLAG_DECRYPTED);
+ 
+-	ath11k_dp_rx_h_undecap(ar, msdu, desc,
+-			       HAL_ENCRYPT_TYPE_TKIP_MIC, status, false);
+-
+-	return false;
++	return ath11k_dp_rx_h_undecap(ar, msdu, desc,
++				       HAL_ENCRYPT_TYPE_TKIP_MIC, status, false);
+ }
+ 
+ static bool ath11k_dp_rx_h_rxdma_err(struct ath11k *ar,  struct sk_buff *msdu,

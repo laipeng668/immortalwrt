@@ -1,0 +1,58 @@
+Subject: [PATCH] phy: use the public bulk registration helpers
+
+Linux 6.18 no longer exports phy_driver_register() and
+phy_driver_unregister(). Use the array helpers with a count of one,
+which also work with the older supported kernels.
+
+--- a/src/hsl/phy/qca808x.c
++++ b/src/hsl/phy/qca808x.c
+@@ -693,7 +693,7 @@ a_int32_t qca808x_phy_driver_register(vo
+ {
+ 	a_int32_t ret;
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
+-	ret = phy_driver_register(&qca808x_phy_driver, THIS_MODULE);
++	ret = phy_drivers_register(&qca808x_phy_driver, 1, THIS_MODULE);
+ #else
+ 	ret = phy_driver_register(&qca808x_phy_driver);
+ #endif
+@@ -702,7 +702,7 @@ a_int32_t qca808x_phy_driver_register(vo
+ 
+ void qca808x_phy_driver_unregister(void)
+ {
+-	phy_driver_unregister(&qca808x_phy_driver);
++	phy_drivers_unregister(&qca808x_phy_driver, 1);
+ }
+ 
+ void qca808x_phydev_init(a_uint32_t dev_id, a_uint32_t port_id)
+--- a/src/hsl/phy/sfp_phy.c
++++ b/src/hsl/phy/sfp_phy.c
+@@ -352,9 +352,9 @@ int sfp_phy_device_setup(a_uint32_t dev_
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,9,0))
+ 			drv = phydev->mdio.dev.driver;
+ 			phydrv = to_phy_driver(drv);
+-			phy_driver_unregister(phydrv);
++			phy_drivers_unregister(phydrv, 1);
+ #else
+-			phy_driver_unregister(phydev->drv);
++			phy_drivers_unregister(phydev->drv, 1);
+ #endif
+ 		}
+ 	}
+@@ -405,7 +405,7 @@ int sfp_phy_driver_register(void)
+ 	if(sfp_phy_drv_registered == A_FALSE)
+ 	{
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4,9,0))
+-		ret = phy_driver_register(&sfp_phy_driver, THIS_MODULE);
++		ret = phy_drivers_register(&sfp_phy_driver, 1, THIS_MODULE);
+ #else
+ 		ret = phy_driver_register(&sfp_phy_driver);
+ #endif
+@@ -418,7 +418,7 @@ void sfp_phy_driver_unregister(void)
+ {
+ 	if (sfp_phy_drv_registered == A_TRUE)
+ 	{
+-		phy_driver_unregister(&sfp_phy_driver);
++		phy_drivers_unregister(&sfp_phy_driver, 1);
+ 	}
+ }
+ 
