@@ -1,0 +1,40 @@
+Keep the upstream 7.2 percentage cooling interface and thermal WMI layout.
+Cache requests while the radio is off, and update the applied state only
+after a successful command while it is on.
+
+ drivers/net/wireless/ath/ath11k/thermal.c |    9 ++++++---
+ 1 file changed, 6 insertions(+), 3 deletions(-)
+
+--- a/drivers/net/wireless/ath/ath11k/thermal.c
++++ b/drivers/net/wireless/ath/ath11k/thermal.c
+@@ -48,8 +48,6 @@ ath11k_thermal_set_cur_throttle_state(st
+ 	}
+ 	mutex_lock(&ar->conf_mutex);
+ 	ret = ath11k_thermal_set_throttling(ar, throttle_state);
+-	if (ret == 0)
+-		ar->thermal.throttle_state = throttle_state;
+ 	mutex_unlock(&ar->conf_mutex);
+ 	return ret;
+ }
+@@ -132,8 +130,10 @@ int ath11k_thermal_set_throttling(struct
+ 
+ 	lockdep_assert_held(&ar->conf_mutex);
+ 
+-	if (ar->state != ATH11K_STATE_ON)
++	if (ar->state != ATH11K_STATE_ON) {
++		ar->thermal.throttle_state = throttle_state;
+ 		return 0;
++	}
+ 
+ 	memset(&param, 0, sizeof(param));
+ 	param.pdev_id = ar->pdev->pdev_id;
+@@ -152,6 +152,9 @@ int ath11k_thermal_set_throttling(struct
+ 			    throttle_state, ret);
+ 	}
+ 
++	if (!ret)
++		ar->thermal.throttle_state = throttle_state;
++
+ 	return ret;
+ }
+ 
