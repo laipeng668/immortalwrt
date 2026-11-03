@@ -67,7 +67,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 
 --- a/drivers/mtd/mtdcore.c
 +++ b/drivers/mtd/mtdcore.c
-@@ -541,6 +541,7 @@ static int mtd_nvmem_add(struct mtd_info
+@@ -579,6 +579,7 @@ static int mtd_nvmem_add(struct mtd_info
  	config.dev = &mtd->dev;
  	config.name = dev_name(&mtd->dev);
  	config.owner = THIS_MODULE;
@@ -75,7 +75,7 @@ Signed-off-by: Greg Kroah-Hartman <gregkh@linuxfoundation.org>
  	config.reg_read = mtd_nvmem_reg_read;
  	config.size = mtd->size;
  	config.word_size = 1;
-@@ -898,6 +899,7 @@ static struct nvmem_device *mtd_otp_nvme
+@@ -925,6 +926,7 @@ static struct nvmem_device *mtd_otp_nvme
  	config.name = compatible;
  	config.id = NVMEM_DEVID_AUTO;
  	config.owner = THIS_MODULE;

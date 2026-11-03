@@ -20,7 +20,7 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
 
 --- a/drivers/bus/mhi/host/main.c
 +++ b/drivers/bus/mhi/host/main.c
-@@ -909,6 +909,7 @@ int mhi_process_ctrl_ev_ring(struct mhi_
+@@ -915,6 +915,7 @@ int mhi_process_ctrl_ev_ring(struct mhi_
  			switch (event) {
  			case MHI_EE_SBL:
  				st = DEV_ST_TRANSITION_SBL;

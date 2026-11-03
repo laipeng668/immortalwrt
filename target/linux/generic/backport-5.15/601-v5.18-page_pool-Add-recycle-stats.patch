@@ -123,7 +123,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  		page_pool_return_page(pool, page);
  	}
  }
-@@ -667,6 +687,9 @@ static void page_pool_free(struct page_p
+@@ -668,6 +688,9 @@ static void page_pool_free(struct page_p
  	if (pool->p.flags & PP_FLAG_DMA_MAP)
  		put_device(pool->p.dev);
  

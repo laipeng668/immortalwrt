@@ -105,7 +105,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  static void lru_gen_exit_fault(void)
 --- a/mm/rmap.c
 +++ b/mm/rmap.c
-@@ -794,25 +794,14 @@ static bool page_referenced_one(struct p
+@@ -798,25 +798,14 @@ static bool page_referenced_one(struct p
  		}
  
  		if (pvmw.pte) {
@@ -134,7 +134,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		} else if (IS_ENABLED(CONFIG_TRANSPARENT_HUGEPAGE)) {
  			if (pmdp_clear_flush_young_notify(vma, address,
  						pvmw.pmd))
-@@ -846,7 +835,20 @@ static bool invalid_page_referenced_vma(
+@@ -850,7 +839,20 @@ static bool invalid_page_referenced_vma(
  	struct page_referenced_arg *pra = arg;
  	struct mem_cgroup *memcg = pra->memcg;
  
@@ -156,7 +156,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  		return true;
  
  	return false;
-@@ -876,6 +878,7 @@ int page_referenced(struct page *page,
+@@ -880,6 +882,7 @@ int page_referenced(struct page *page,
  		.rmap_one = page_referenced_one,
  		.arg = (void *)&pra,
  		.anon_lock = page_lock_anon_vma_read,
@@ -164,7 +164,7 @@ Signed-off-by: Andrew Morton <akpm@linux-foundation.org>
  	};
  
  	*vm_flags = 0;
-@@ -891,15 +894,6 @@ int page_referenced(struct page *page,
+@@ -895,15 +898,6 @@ int page_referenced(struct page *page,
  			return 1;
  	}
  

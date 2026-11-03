@@ -67,7 +67,7 @@ Link: https://lore.kernel.org/linux-mtd/20220629125737.14418-3-kernel@kempniu.pl
  	ops.mode = MTD_OPS_PLACE_OOB;
 --- a/drivers/mtd/mtdswap.c
 +++ b/drivers/mtd/mtdswap.c
-@@ -323,7 +323,7 @@ static int mtdswap_read_markers(struct m
+@@ -324,7 +324,7 @@ static int mtdswap_read_markers(struct m
  	struct mtdswap_oobdata *data, *data2;
  	int ret;
  	loff_t offset;
@@ -76,7 +76,7 @@ Link: https://lore.kernel.org/linux-mtd/20220629125737.14418-3-kernel@kempniu.pl
  
  	offset = mtdswap_eb_offset(d, eb);
  
-@@ -370,7 +370,7 @@ static int mtdswap_write_marker(struct m
+@@ -371,7 +371,7 @@ static int mtdswap_write_marker(struct m
  	struct mtdswap_oobdata n;
  	int ret;
  	loff_t offset;
@@ -85,7 +85,7 @@ Link: https://lore.kernel.org/linux-mtd/20220629125737.14418-3-kernel@kempniu.pl
  
  	ops.ooboffs = 0;
  	ops.oobbuf = (uint8_t *)&n;
-@@ -879,7 +879,7 @@ static unsigned int mtdswap_eblk_passes(
+@@ -880,7 +880,7 @@ static unsigned int mtdswap_eblk_passes(
  	loff_t base, pos;
  	unsigned int *p1 = (unsigned int *)d->page_buf;
  	unsigned char *p2 = (unsigned char *)d->oob_buf;

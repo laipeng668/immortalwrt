@@ -29,7 +29,7 @@ Link: https://lore.kernel.org/linux-mtd/20220622010628.30414-4-ansuelsmth@gmail.
 
 --- a/drivers/mtd/mtdcore.c
 +++ b/drivers/mtd/mtdcore.c
-@@ -564,6 +564,66 @@ static int mtd_nvmem_add(struct mtd_info
+@@ -602,6 +602,66 @@ static int mtd_nvmem_add(struct mtd_info
  	return 0;
  }
  
@@ -96,11 +96,11 @@ Link: https://lore.kernel.org/linux-mtd/20220622010628.30414-4-ansuelsmth@gmail.
  /**
   *	add_mtd_device - register an MTD device
   *	@mtd: pointer to new MTD device info structure
-@@ -669,6 +729,7 @@ int add_mtd_device(struct mtd_info *mtd)
+@@ -707,6 +767,7 @@ int add_mtd_device(struct mtd_info *mtd)
  	mtd->dev.devt = MTD_DEVT(i);
  	dev_set_name(&mtd->dev, "mtd%d", i);
  	dev_set_drvdata(&mtd->dev, mtd);
 +	mtd_check_of_node(mtd);
  	of_node_get(mtd_get_of_node(mtd));
  	error = device_register(&mtd->dev);
- 	if (error) {
+ 	if (error)

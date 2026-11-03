@@ -25,7 +25,7 @@ Signed-off-by: Felix Fietkau <nbd@nbd.name>
  	__br_handle_local_finish(skb);
  
  	/* return 1 to signal the okfn() was called so it's ok to use the skb */
-@@ -376,6 +379,17 @@ static rx_handler_result_t br_handle_fra
+@@ -385,6 +388,17 @@ static rx_handler_result_t br_handle_fra
  
  forward:
  	switch (p->state) {

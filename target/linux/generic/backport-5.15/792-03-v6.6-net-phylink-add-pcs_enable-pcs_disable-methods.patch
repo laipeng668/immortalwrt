@@ -83,7 +83,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	pl->mac_ops = mac_ops;
  	__set_bit(PHYLINK_DISABLE_STOPPED, &pl->phylink_disable_state);
  	timer_setup(&pl->link_poll, phylink_fixed_poll, 0);
-@@ -1655,6 +1681,8 @@ void phylink_start(struct phylink *pl)
+@@ -1656,6 +1682,8 @@ void phylink_start(struct phylink *pl)
  	if (pl->netdev)
  		netif_carrier_off(pl->netdev);
  
@@ -92,7 +92,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	/* Apply the link configuration to the MAC when starting. This allows
  	 * a fixed-link to start with the correct parameters, and also
  	 * ensures that we set the appropriate advertisement for Serdes links.
-@@ -1665,6 +1693,8 @@ void phylink_start(struct phylink *pl)
+@@ -1666,6 +1694,8 @@ void phylink_start(struct phylink *pl)
  	 */
  	phylink_mac_initial_config(pl, true);
  
@@ -101,7 +101,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	clear_bit(PHYLINK_DISABLE_STOPPED, &pl->phylink_disable_state);
  	phylink_run_resolve(pl);
  
-@@ -1684,16 +1714,9 @@ void phylink_start(struct phylink *pl)
+@@ -1685,16 +1715,9 @@ void phylink_start(struct phylink *pl)
  			poll = true;
  	}
  
@@ -120,7 +120,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
  	if (poll)
  		mod_timer(&pl->link_poll, jiffies + HZ);
  	if (pl->phydev)
-@@ -1730,6 +1753,10 @@ void phylink_stop(struct phylink *pl)
+@@ -1731,6 +1754,10 @@ void phylink_stop(struct phylink *pl)
  	}
  
  	phylink_run_resolve_and_disable(pl, PHYLINK_DISABLE_STOPPED);

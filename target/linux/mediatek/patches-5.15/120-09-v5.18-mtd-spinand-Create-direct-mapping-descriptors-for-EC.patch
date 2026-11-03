@@ -29,7 +29,7 @@ Link: https://lore.kernel.org/linux-mtd/20220127091808.1043392-9-miquel.raynal@b
 
 --- a/drivers/mtd/nand/spi/core.c
 +++ b/drivers/mtd/nand/spi/core.c
-@@ -381,7 +381,10 @@ static int spinand_read_from_cache_op(st
+@@ -398,7 +398,10 @@ static int spinand_read_from_cache_op(st
  		}
  	}
  
@@ -41,7 +41,7 @@ Link: https://lore.kernel.org/linux-mtd/20220127091808.1043392-9-miquel.raynal@b
  
  	while (nbytes) {
  		ret = spi_mem_dirmap_read(rdesc, column, nbytes, buf);
-@@ -452,7 +455,10 @@ static int spinand_write_to_cache_op(str
+@@ -469,7 +472,10 @@ static int spinand_write_to_cache_op(str
  			       req->ooblen);
  	}
  
@@ -53,7 +53,7 @@ Link: https://lore.kernel.org/linux-mtd/20220127091808.1043392-9-miquel.raynal@b
  
  	while (nbytes) {
  		ret = spi_mem_dirmap_write(wdesc, column, nbytes, buf);
-@@ -878,6 +884,31 @@ static int spinand_create_dirmap(struct
+@@ -895,6 +901,31 @@ static int spinand_create_dirmap(struct
  
  	spinand->dirmaps[plane].rdesc = desc;
  

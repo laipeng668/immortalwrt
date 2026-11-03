@@ -90,7 +90,7 @@ Link: https://lore.kernel.org/linux-mtd/20221018051822.28685-1-zajec5@gmail.com
 
 --- a/drivers/mtd/mtdcore.c
 +++ b/drivers/mtd/mtdcore.c
-@@ -580,7 +580,7 @@ static void mtd_check_of_node(struct mtd
+@@ -618,7 +618,7 @@ static void mtd_check_of_node(struct mtd
  	if (!mtd_is_partition(mtd))
  		return;
  	parent = mtd->parent;

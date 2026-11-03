@@ -17,7 +17,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
 
 --- a/include/linux/list.h
 +++ b/include/linux/list.h
-@@ -562,6 +562,19 @@ static inline void list_splice_tail_init
+@@ -569,6 +569,19 @@ static inline void list_splice_tail_init
  	list_entry((pos)->member.next, typeof(*(pos)), member)
  
  /**
@@ -37,7 +37,7 @@ Signed-off-by: David S. Miller <davem@davemloft.net>
   * list_prev_entry - get the prev element in list
   * @pos:	the type * to cursor
   * @member:	the name of the list_head within the struct.
-@@ -570,6 +583,19 @@ static inline void list_splice_tail_init
+@@ -577,6 +590,19 @@ static inline void list_splice_tail_init
  	list_entry((pos)->member.prev, typeof(*(pos)), member)
  
  /**
