@@ -42,9 +42,9 @@ Tested-on: QCN9074 hw1.0 PCI WLAN.HK.2.5.0.1-01208-QCAHKSWPL_SILICONZ-1
 
 Signed-off-by: Robert Marko <robimarko@gmail.com>
 ---
- drivers/net/wireless/ath/ath11k/mhi.c | 49 ++++++++++++++++++---------
- drivers/net/wireless/ath/ath11k/mhi.h |  3 ++
- drivers/net/wireless/ath/ath11k/pci.c |  9 ++++-
+ drivers/net/wireless/ath/ath11k/mhi.c | 49 +++++++++++++++++++++++++++++++++----------------
+ drivers/net/wireless/ath/ath11k/mhi.h |  3 +++
+ drivers/net/wireless/ath/ath11k/pci.c |  9 ++++++++-
  3 files changed, 44 insertions(+), 17 deletions(-)
 
 --- a/drivers/net/wireless/ath/ath11k/mhi.c

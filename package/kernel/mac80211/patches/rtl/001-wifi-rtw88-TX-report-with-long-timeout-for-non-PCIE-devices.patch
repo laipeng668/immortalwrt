@@ -1,4 +1,4 @@
-From 7cde94dab0e74434ccc0a387d7ad373fb3becda0 Mon Sep 17 00:00:00 2001
+From bbd4f8e9217162a79cd0b016b646b3afcbbf7629 Mon Sep 17 00:00:00 2001
 From: Ping-Ke Shih <pkshih@realtek.com>
 Date: Thu, 24 Sep 2026 08:46:37 +0800
 Subject: [PATCH] wifi: rtw88: TX report with long timeout for non-PCIE devices
@@ -10,11 +10,8 @@ Keep PCIE using short timeout, and others use long timeout.
 
 [1] https://lore.kernel.org/linux-wireless/20260921165343.8131-1-pepe.schlehofer@gmail.com/
 
-Cc: stable@vger.kernel.org
 Signed-off-by: Ping-Ke Shih <pkshih@realtek.com>
-Reviewed-by: Luka Gejak <luka.gejak@linux.dev>
-Tested-by: Josef Schlehofer <pepe.schlehofer@gmail.com>
-Link: https://patch.msgid.link/20260924004637.9958-1-pkshih@realtek.com
+Link: https://lore.kernel.org/linux-wireless/20260924004637.9958-1-pkshih@realtek.com/
 ---
  drivers/net/wireless/realtek/rtw88/tx.c | 9 +++++----
  drivers/net/wireless/realtek/rtw88/tx.h | 3 ++-
