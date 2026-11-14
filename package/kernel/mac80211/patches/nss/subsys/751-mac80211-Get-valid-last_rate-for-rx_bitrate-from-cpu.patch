@@ -23,7 +23,7 @@ Signed-off-by: Maharaja Kennadyrajan <quic_mkenna@quicinc.com>
 
 --- a/net/mac80211/sta_info.c
 +++ b/net/mac80211/sta_info.c
-@@ -2594,7 +2594,7 @@ void ieee80211_sta_update_pending_airtim
+@@ -2596,7 +2596,7 @@ void ieee80211_sta_update_pending_airtim
  }
  
  static struct ieee80211_sta_rx_stats *
@@ -32,7 +32,7 @@ Signed-off-by: Maharaja Kennadyrajan <quic_mkenna@quicinc.com>
  {
  	struct ieee80211_sta_rx_stats *stats;
  	struct link_sta_info *link_sta_info;
-@@ -2616,10 +2616,18 @@ sta_get_last_rx_stats(struct sta_info *s
+@@ -2618,10 +2618,18 @@ sta_get_last_rx_stats(struct sta_info *s
  
  	for_each_possible_cpu(cpu) {
  		struct ieee80211_sta_rx_stats *cpustats;
@@ -52,7 +52,7 @@ Signed-off-by: Maharaja Kennadyrajan <quic_mkenna@quicinc.com>
  			stats = cpustats;
  	}
  
-@@ -2713,7 +2721,7 @@ static void sta_stats_decode_rate(struct
+@@ -2715,7 +2723,7 @@ static void sta_stats_decode_rate(struct
  static int sta_set_rate_info_rx(struct sta_info *sta, struct rate_info *rinfo,
  				int link_id)
  {
@@ -61,7 +61,7 @@ Signed-off-by: Maharaja Kennadyrajan <quic_mkenna@quicinc.com>
  
  	if (rate == STA_STATS_RATE_INVALID)
  		return -EINVAL;
-@@ -2882,7 +2890,7 @@ static void sta_set_link_sinfo(struct st
+@@ -2884,7 +2892,7 @@ static void sta_set_link_sinfo(struct st
  	struct link_sta_info *link_sta_info;
  	u32 thr = 0;
  
@@ -70,7 +70,7 @@ Signed-off-by: Maharaja Kennadyrajan <quic_mkenna@quicinc.com>
  
  	link_sta_info = wiphy_dereference(sta->local->hw.wiphy,
  					  sta->link[link_id]);
-@@ -3142,7 +3150,7 @@ void sta_set_sinfo(struct sta_info *sta,
+@@ -3144,7 +3152,7 @@ void sta_set_sinfo(struct sta_info *sta,
  	int i, ac, cpu;
  	struct ieee80211_sta_rx_stats *last_rxstats;
  
@@ -79,7 +79,7 @@ Signed-off-by: Maharaja Kennadyrajan <quic_mkenna@quicinc.com>
  
  	sinfo->generation = sdata->local->sta_generation;
  
-@@ -3434,7 +3442,7 @@ unsigned long ieee80211_sta_last_active(
+@@ -3436,7 +3444,7 @@ unsigned long ieee80211_sta_last_active(
  	struct ieee80211_sta_rx_stats *stats;
  	struct link_sta_info *link_sta_info;
  

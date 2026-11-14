@@ -86,7 +86,7 @@ Signed-off-by: Sriram R <quic_srirrama@quicinc.com>
  	if (action) {
 --- a/net/mac80211/rx.c
 +++ b/net/mac80211/rx.c
-@@ -4888,10 +4888,15 @@ void ieee80211_check_fast_rx(struct sta_
+@@ -4894,10 +4894,15 @@ void ieee80211_check_fast_rx(struct sta_
  
  		break;
  	case NL80211_IFTYPE_MESH_POINT:
@@ -104,7 +104,7 @@ Signed-off-by: Sriram R <quic_srirrama@quicinc.com>
  		break;
  	default:
  		goto clear;
-@@ -5116,6 +5121,10 @@ static bool ieee80211_invoke_fast_rx(str
+@@ -5122,6 +5127,10 @@ static bool ieee80211_invoke_fast_rx(str
  		u8 sa[ETH_ALEN];
  	} addrs __aligned(2);
  	struct ieee80211_sta_rx_stats *stats;
@@ -115,7 +115,7 @@ Signed-off-by: Sriram R <quic_srirrama@quicinc.com>
  	u32 encoded_rate;
  
  	/* for parallel-rx, we need to have DUP_VALIDATED, otherwise we write
-@@ -5166,6 +5175,37 @@ static bool ieee80211_invoke_fast_rx(str
+@@ -5172,6 +5181,37 @@ static bool ieee80211_invoke_fast_rx(str
  		snap_offs += IEEE80211_CCMP_HDR_LEN;
  	}
  
@@ -153,7 +153,7 @@ Signed-off-by: Sriram R <quic_srirrama@quicinc.com>
  	if (!ieee80211_vif_is_mesh(&rx->sdata->vif) &&
  	    !(status->rx_flags & IEEE80211_RX_AMSDU)) {
  		if (!pskb_may_pull(skb, snap_offs + sizeof(*payload)))
-@@ -5208,9 +5248,33 @@ static bool ieee80211_invoke_fast_rx(str
+@@ -5214,9 +5254,33 @@ static bool ieee80211_invoke_fast_rx(str
  		return true;
  	}
  

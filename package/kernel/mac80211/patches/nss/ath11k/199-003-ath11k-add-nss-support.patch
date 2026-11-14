@@ -41,7 +41,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 
 --- a/drivers/net/wireless/ath/ath11k/ahb.c
 +++ b/drivers/net/wireless/ath/ath11k/ahb.c
-@@ -545,6 +545,12 @@ static int ath11k_ahb_config_ext_irq(str
+@@ -554,6 +554,12 @@ static int ath11k_ahb_config_ext_irq(str
  	int i, j;
  	int irq;
  	int ret;
@@ -53,8 +53,8 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	nss_offload = ab->nss.enabled;
  
  	for (i = 0; i < ATH11K_EXT_IRQ_GRP_NUM_MAX; i++) {
- 		struct ath11k_ext_irq_grp *irq_grp = &ab->ext_irq_grp[i];
-@@ -561,20 +567,20 @@ static int ath11k_ahb_config_ext_irq(str
+ 		u32 num_irq = 0;
+@@ -574,20 +580,20 @@ static int ath11k_ahb_config_ext_irq(str
  			       ath11k_ahb_ext_grp_napi_poll);
  
  		for (j = 0; j < ATH11K_EXT_IRQ_NUM_MAX; j++) {
@@ -79,7 +79,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  				irq_grp->irqs[num_irq++] = wbm2host_rx_release;
  
  			if (ab->hw_params.ring_mask->reo_status[i] & BIT(j))
-@@ -587,7 +593,7 @@ static int ath11k_ahb_config_ext_irq(str
+@@ -600,7 +606,7 @@ static int ath11k_ahb_config_ext_irq(str
  						ath11k_hw_get_mac_from_pdev_id(hw, j);
  				}
  
@@ -88,7 +88,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  					irq_grp->irqs[num_irq++] =
  						host2rxdma_host_buf_ring_mac1 -
  						ath11k_hw_get_mac_from_pdev_id(hw, j);
-@@ -958,6 +964,7 @@ static int ath11k_ahb_setup_resources(st
+@@ -989,6 +995,7 @@ static int ath11k_ahb_setup_resources(st
  	}
  
  	ab->mem = mem;
@@ -111,7 +111,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  unsigned int ath11k_debug_mask;
  EXPORT_SYMBOL(ath11k_debug_mask);
  module_param_named(debug_mask, ath11k_debug_mask, uint, 0644);
-@@ -2186,10 +2192,16 @@ static int ath11k_core_pdev_create(struc
+@@ -2183,10 +2189,16 @@ static int ath11k_core_pdev_create(struc
  		goto err_pdev_debug;
  	}
  
@@ -129,7 +129,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	}
  
  	ret = ath11k_thermal_register(ab);
-@@ -2219,6 +2231,8 @@ err_thermal_unregister:
+@@ -2216,6 +2228,8 @@ err_thermal_unregister:
  	ath11k_thermal_unregister(ab);
  err_mac_unregister:
  	ath11k_mac_unregister(ab);
@@ -138,7 +138,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  err_dp_pdev_free:
  	ath11k_dp_pdev_free(ab);
  err_pdev_debug:
-@@ -2268,6 +2282,10 @@ static void ath11k_core_pdev_destroy(str
+@@ -2265,6 +2279,10 @@ static void ath11k_core_pdev_destroy(str
  	ath11k_spectral_deinit(ab);
  	ath11k_thermal_unregister(ab);
  	ath11k_mac_unregister(ab);
@@ -149,7 +149,7 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
  	ath11k_core_pdev_suspend_target(ab);
  	ath11k_hif_irq_disable(ab);
  	ath11k_dp_pdev_free(ab);
-@@ -2477,6 +2495,10 @@ static int ath11k_core_reconfigure_on_cr
+@@ -2474,6 +2492,10 @@ static int ath11k_core_reconfigure_on_cr
  	ath11k_hif_irq_disable(ab);
  
  	mutex_lock(&ab->core_lock);
@@ -157,10 +157,10 @@ Signed-off-by: Sriram R <srirrama@codeaurora.org>
 +	ath11k_nss_teardown(ab);
 +	ab->nss.enabled = false;
 +
+ 	ath11k_hif_irq_disable(ab);
+ 	ath11k_hif_ce_irq_disable(ab);
  	ath11k_thermal_unregister(ab);
- 
- 	/*
-@@ -2821,6 +2843,10 @@ int ath11k_core_pre_init(struct ath11k_b
+@@ -2807,6 +2829,10 @@ int ath11k_core_pre_init(struct ath11k_b
  		ath11k_err(ab, "failed to pre init firmware: %d", ret);
  		return ret;
  	}

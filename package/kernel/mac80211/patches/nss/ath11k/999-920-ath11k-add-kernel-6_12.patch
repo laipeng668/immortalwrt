@@ -13,7 +13,7 @@ the existing kernel-version adaptations.
 
 --- a/drivers/net/wireless/ath/ath11k/core.c
 +++ b/drivers/net/wireless/ath/ath11k/core.c
-@@ -3051,13 +3051,13 @@ err_sc_free:
+@@ -3037,13 +3037,13 @@ err_sc_free:
  }
  EXPORT_SYMBOL(ath11k_core_alloc);
  

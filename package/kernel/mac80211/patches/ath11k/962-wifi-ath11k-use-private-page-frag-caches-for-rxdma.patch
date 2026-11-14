@@ -40,15 +40,15 @@ Signed-off-by: Mark Ruvald Pedersen <wabsie@gmail.com>
 
 --- a/drivers/net/wireless/ath/ath11k/core.c
 +++ b/drivers/net/wireless/ath/ath11k/core.c
-@@ -2474,6 +2474,8 @@ static int ath11k_core_reconfigure_on_cr
+@@ -2471,6 +2471,8 @@ static int ath11k_core_reconfigure_on_cr
  {
  	int ret;
  
 +	ath11k_hif_irq_disable(ab);
 +
  	mutex_lock(&ab->core_lock);
- 	ath11k_thermal_unregister(ab);
- 
+ 	ath11k_hif_irq_disable(ab);
+ 	ath11k_hif_ce_irq_disable(ab);
 --- a/drivers/net/wireless/ath/ath11k/dp.h
 +++ b/drivers/net/wireless/ath/ath11k/dp.h
 @@ -7,6 +7,7 @@
