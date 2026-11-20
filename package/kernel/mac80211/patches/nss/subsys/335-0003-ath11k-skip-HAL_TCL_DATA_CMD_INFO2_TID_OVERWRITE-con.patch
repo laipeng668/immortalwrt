@@ -1,0 +1,44 @@
+From c7bd857a315fb299e4c984be2f3720428477ae6e Mon Sep 17 00:00:00 2001
+From: Venkateswara Naralasetty <quic_vnaralas@quicinc.com>
+Date: Thu, 11 Nov 2021 11:14:08 +0530
+Subject: [PATCH] ath11k: skip HAL_TCL_DATA_CMD_INFO2_TID_OVERWRITE config
+
+Don't set HAL_TCL_DATA_CMD_INFO2_TID_OVERWRITE flag to TCL,
+HW only take care of tid classification if this flag is not set.
+
+Signed-off-by: Venkateswara Naralasetty <quic_vnaralas@quicinc.com>
+Signed-off-by: Gautham Kumar Senthilkumaran <quic_gauthamk@quicinc.com>
+---
+ include/net/mac80211.h | 3 +++
+ net/mac80211/debugfs.c | 1 +
+ 2 files changed, 4 insertions(+)
+
+--- a/include/net/mac80211.h
++++ b/include/net/mac80211.h
+@@ -3131,6 +3131,8 @@ struct ieee80211_txq {
+  * @IEEE80211_HW_SUPPORTS_NDP_BLOCKACK: HW can transmit/receive S1G NDP
+  * @IEEE80211_HW_SUPPORTS_NSS_OFFLOAD: Hardware/driver supports NSS offload
+  *	BlockAck frames.
++ * @IEEE80211_HW_SUPPORTS_TID_CLASS_OFFLOAD: Hardware suports tid calssification offload.
++ *
+  *
+  * @IEEE80211_HW_DEFERRED_AIRTIME_REPORT: The driver reports the TX airtime
+  *	of a station with ieee80211_sta_register_airtime() some time after
+@@ -3212,6 +3214,7 @@ enum ieee80211_hw_flags {
+ 	IEEE80211_HW_SUPPORTS_NDP_BLOCKACK,
+ 	IEEE80211_HW_SUPPORTS_NSS_OFFLOAD,
+ 	IEEE80211_HW_SUPPORTS_MESH_NSS_OFFLOAD,
++	IEEE80211_HW_SUPPORTS_TID_CLASS_OFFLOAD,
+ 	IEEE80211_HW_DEFERRED_AIRTIME_REPORT,
+ 	IEEE80211_HW_AP_REMOVAL_BEACON_HOLD,
+ 
+--- a/net/mac80211/debugfs.c
++++ b/net/mac80211/debugfs.c
+@@ -485,6 +485,7 @@ static const char *hw_flag_names[] = {
+ 	FLAG(SUPPORTS_NDP_BLOCKACK),
+ 	FLAG(SUPPORTS_NSS_OFFLOAD),
+ 	FLAG(SUPPORTS_MESH_NSS_OFFLOAD),
++	FLAG(SUPPORTS_TID_CLASS_OFFLOAD),
+ 	FLAG(DEFERRED_AIRTIME_REPORT),
+ 	FLAG(AP_REMOVAL_BEACON_HOLD),
+ #undef FLAG
