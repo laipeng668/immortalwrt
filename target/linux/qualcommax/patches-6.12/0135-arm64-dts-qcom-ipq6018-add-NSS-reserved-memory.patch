@@ -25,3 +25,28 @@ Signed-off-by: Robert Marko <robimarko@gmail.com>
  		bootloader@4a100000 {
  			reg = <0x0 0x4a100000 0x0 0x400000>;
  			no-map;
+@@ -218,6 +223,24 @@
+ 			reg = <0x0 0x4ab00000 0x0 0x5500000>;
+ 			no-map;
+ 		};
++
++		q6_etr_region: q6_etr_dump@50b00000 {
++			reg = <0x0 0x50b00000 0x0 0x100000>;
++			no-map;
++		};
++
++		m3_dump_region: m3_dump@50c00000 {
++			reg = <0x0 0x50c00000 0x0 0x100000>;
++			no-map;
++		};
++
++		ramoops_region: ramoops@50d00000 {
++			compatible = "ramoops";
++			reg = <0x0 0x50d00000 0x0 0x100000>;
++			no-map;
++			record-size = <0x4000>;
++			console-size = <0x4000>;
++		};
+ 	};
+ 
+ 	smem {
