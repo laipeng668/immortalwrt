@@ -181,7 +181,7 @@ Subject: [PATCH] kernel: add block fit partition parser
  
 --- a/drivers/mtd/mtd_blkdevs.c
 +++ b/drivers/mtd/mtd_blkdevs.c
-@@ -345,6 +345,8 @@ int add_mtd_blktrans_dev(struct mtd_blkt
+@@ -350,6 +350,8 @@ int add_mtd_blktrans_dev(struct mtd_blkt
  	gd->first_minor = (new->devnum) << tr->part_bits;
  	gd->minors = 1 << tr->part_bits;
  	gd->fops = &mtd_block_ops;

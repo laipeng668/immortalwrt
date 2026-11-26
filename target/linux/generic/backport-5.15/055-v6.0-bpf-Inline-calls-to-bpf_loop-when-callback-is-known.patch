@@ -86,7 +86,7 @@ Signed-off-by: Alexei Starovoitov <ast@kernel.org>
  	int ctx_field_size; /* the ctx field size for load insn, maybe 0 */
 --- a/kernel/bpf/bpf_iter.c
 +++ b/kernel/bpf/bpf_iter.c
-@@ -715,9 +715,6 @@ const struct bpf_func_proto bpf_for_each
+@@ -722,9 +722,6 @@ const struct bpf_func_proto bpf_for_each
  	.arg4_type	= ARG_ANYTHING,
  };
  
@@ -96,7 +96,7 @@ Signed-off-by: Alexei Starovoitov <ast@kernel.org>
  BPF_CALL_4(bpf_loop, u32, nr_loops, void *, callback_fn, void *, callback_ctx,
  	   u64, flags)
  {
-@@ -725,9 +722,13 @@ BPF_CALL_4(bpf_loop, u32, nr_loops, void
+@@ -732,9 +729,13 @@ BPF_CALL_4(bpf_loop, u32, nr_loops, void
  	u64 ret;
  	u32 i;
  

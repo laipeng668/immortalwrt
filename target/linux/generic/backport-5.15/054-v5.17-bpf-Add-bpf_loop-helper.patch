@@ -42,7 +42,7 @@ Link: https://lore.kernel.org/bpf/20211130030622.4131246-2-joannekoong@fb.com
 
 --- a/include/linux/bpf.h
 +++ b/include/linux/bpf.h
-@@ -2287,6 +2287,7 @@ extern const struct bpf_func_proto bpf_f
+@@ -2310,6 +2310,7 @@ extern const struct bpf_func_proto bpf_f
  extern const struct bpf_func_proto bpf_btf_find_by_name_kind_proto;
  extern const struct bpf_func_proto bpf_sk_setsockopt_proto;
  extern const struct bpf_func_proto bpf_sk_getsockopt_proto;
@@ -98,7 +98,7 @@ Link: https://lore.kernel.org/bpf/20211130030622.4131246-2-joannekoong@fb.com
  /* integer value in 'imm' field of BPF_CALL instruction selects which helper
 --- a/kernel/bpf/bpf_iter.c
 +++ b/kernel/bpf/bpf_iter.c
-@@ -714,3 +714,38 @@ const struct bpf_func_proto bpf_for_each
+@@ -721,3 +721,38 @@ const struct bpf_func_proto bpf_for_each
  	.arg3_type	= ARG_PTR_TO_STACK_OR_NULL,
  	.arg4_type	= ARG_ANYTHING,
  };

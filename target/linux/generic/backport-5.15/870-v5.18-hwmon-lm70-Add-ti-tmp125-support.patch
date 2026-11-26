@@ -41,7 +41,7 @@ Signed-off-by: Guenter Roeck <linux@roeck-us.net>
  	case LM70_CHIP_LM70:
 @@ -102,6 +109,10 @@ static ssize_t temp1_input_show(struct d
  	case LM70_CHIP_LM71:
- 		val = ((int)raw / 4) * 3125 / 100;
+ 		val = ((int)raw >> 2) * 3125 / 100;
  		break;
 +
 +	case LM70_CHIP_TMP125:
